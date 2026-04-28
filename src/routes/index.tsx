@@ -116,17 +116,53 @@ function Landing() {
                 How it works
               </div>
               <h2 className="mt-3 font-display text-4xl leading-tight">
-                A different shape for hiring.
+                AI does the heavy lifting. Humans make the call.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                We removed the parts that don't predict success — and built around the parts that do.
+                We removed the parts that don't predict success — and let AI handle the parts that slow everyone down.
               </p>
             </div>
             <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border lg:col-span-8 lg:grid-cols-3">
-              <Step n="01" t="Show real work" b="Build a profile around shipped projects, writing, and submissions — not bullet points." />
-              <Step n="02" t="Take a challenge" b="Companies post focused, paid-or-fast-track challenges. You submit; they evaluate output." />
-              <Step n="03" t="Match on signal" b="A transparent match score from skills, evidence, and challenge outcomes. No black boxes." />
+              <Step n="01" t="Show real work" b="Build a profile around shipped projects and writing. Our AI extracts and verifies skills from your evidence — automatically." />
+              <Step n="02" t="AI-matched challenges" b="Companies post focused challenges. We rank submissions by skill fit and execution — so reviewers see the strongest first." />
+              <Step n="03" t="Transparent match score" b="Every match comes with a readable score: which skills line up, what's missing, what's proven. No black boxes." />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* BUILT FOR BOTH SIDES */}
+      <section className="container mx-auto px-6 py-24">
+        <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          One platform · two sides
+        </div>
+        <h2 className="mx-auto mt-3 max-w-3xl text-center font-display text-4xl leading-tight md:text-5xl">
+          Built for the people who do the work — and the people who hire them.
+        </h2>
+        <div className="mt-12 grid gap-6 md:grid-cols-2">
+          <div className="surface-paper rounded-2xl p-8">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">For talent</div>
+            <h3 className="mt-3 font-display text-2xl">Get found for what you can actually do.</h3>
+            <ul className="mt-5 space-y-3 text-sm text-foreground/80">
+              <li className="flex gap-3"><span className="text-primary">→</span> AI builds your skill graph from real evidence — repos, writing, shipped work.</li>
+              <li className="flex gap-3"><span className="text-primary">→</span> Get matched to challenges and roles that fit, ranked by relevance.</li>
+              <li className="flex gap-3"><span className="text-primary">→</span> Skip the resume black hole. Companies reach out directly.</li>
+            </ul>
+            <Link to="/talent" className="mt-6 inline-block text-sm font-medium text-primary hover:underline">
+              See it for talent →
+            </Link>
+          </div>
+          <div className="rounded-2xl border border-border bg-foreground p-8 text-background">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-background/60">For companies</div>
+            <h3 className="mt-3 font-display text-2xl">Hire on signal. In days, not months.</h3>
+            <ul className="mt-5 space-y-3 text-sm text-background/80">
+              <li className="flex gap-3"><span className="text-background/60">→</span> AI ranks every candidate by proven skills against your role's exact needs.</li>
+              <li className="flex gap-3"><span className="text-background/60">→</span> Run a 48-hour challenge. We surface the top submissions for you.</li>
+              <li className="flex gap-3"><span className="text-background/60">→</span> Cut time-to-hire dramatically. No recruiters, no keyword games.</li>
+            </ul>
+            <Link to="/companies" className="mt-6 inline-block text-sm font-medium text-background hover:underline">
+              See it for companies →
+            </Link>
           </div>
         </div>
       </section>
