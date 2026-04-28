@@ -11,20 +11,28 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TalentRouteImport } from './routes/talent'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PressRouteImport } from './routes/press'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CompanyRouteImport } from './routes/company'
 import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as ChallengesRouteImport } from './routes/challenges'
+import { Route as CareersRouteImport } from './routes/careers'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CompanyIndexRouteImport } from './routes/company.index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as TalentTalentIdRouteImport } from './routes/talent.$talentId'
+import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 import { Route as CompanyJobsRouteImport } from './routes/company.jobs'
 import { Route as CompanyInboxRouteImport } from './routes/company.inbox'
 import { Route as CompanyChallengesRouteImport } from './routes/company.challenges'
 import { Route as CompanyCandidatesRouteImport } from './routes/company.candidates'
+import { Route as ChallengesChallengeIdRouteImport } from './routes/challenges.$challengeId'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
 import { Route as AppJobsRouteImport } from './routes/app.jobs'
@@ -44,6 +52,16 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PressRoute = PressRouteImport.update({
+  id: '/press',
+  path: '/press',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManifestoRoute = ManifestoRouteImport.update({
   id: '/manifesto',
   path: '/manifesto',
@@ -54,6 +72,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompanyRoute = CompanyRouteImport.update({
   id: '/company',
   path: '/company',
@@ -62,6 +85,16 @@ const CompanyRoute = CompanyRouteImport.update({
 const CompaniesRoute = CompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChallengesRoute = ChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CareersRoute = CareersRouteImport.update({
+  id: '/careers',
+  path: '/careers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -94,6 +127,16 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const TalentTalentIdRoute = TalentTalentIdRouteImport.update({
+  id: '/$talentId',
+  path: '/$talentId',
+  getParentRoute: () => TalentRoute,
+} as any)
+const JobsJobIdRoute = JobsJobIdRouteImport.update({
+  id: '/jobs/$jobId',
+  path: '/jobs/$jobId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompanyJobsRoute = CompanyJobsRouteImport.update({
   id: '/jobs',
   path: '/jobs',
@@ -113,6 +156,11 @@ const CompanyCandidatesRoute = CompanyCandidatesRouteImport.update({
   id: '/candidates',
   path: '/candidates',
   getParentRoute: () => CompanyRoute,
+} as any)
+const ChallengesChallengeIdRoute = ChallengesChallengeIdRouteImport.update({
+  id: '/$challengeId',
+  path: '/$challengeId',
+  getParentRoute: () => ChallengesRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
@@ -159,12 +207,17 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
+  '/careers': typeof CareersRoute
+  '/challenges': typeof ChallengesRouteWithChildren
   '/companies': typeof CompaniesRoute
   '/company': typeof CompanyRouteWithChildren
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/press': typeof PressRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
-  '/talent': typeof TalentRoute
+  '/talent': typeof TalentRouteWithChildren
   '/admin/companies': typeof AdminCompaniesRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/users': typeof AdminUsersRoute
@@ -173,21 +226,29 @@ export interface FileRoutesByFullPath {
   '/app/jobs': typeof AppJobsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/profile': typeof AppProfileRoute
+  '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/jobs/$jobId': typeof JobsJobIdRoute
+  '/talent/$talentId': typeof TalentTalentIdRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
   '/company/': typeof CompanyIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/careers': typeof CareersRoute
+  '/challenges': typeof ChallengesRouteWithChildren
   '/companies': typeof CompaniesRoute
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/press': typeof PressRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
-  '/talent': typeof TalentRoute
+  '/talent': typeof TalentRouteWithChildren
   '/admin/companies': typeof AdminCompaniesRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/users': typeof AdminUsersRoute
@@ -196,10 +257,13 @@ export interface FileRoutesByTo {
   '/app/jobs': typeof AppJobsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/profile': typeof AppProfileRoute
+  '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/jobs/$jobId': typeof JobsJobIdRoute
+  '/talent/$talentId': typeof TalentTalentIdRoute
   '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
   '/company': typeof CompanyIndexRoute
@@ -209,12 +273,17 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
+  '/careers': typeof CareersRoute
+  '/challenges': typeof ChallengesRouteWithChildren
   '/companies': typeof CompaniesRoute
   '/company': typeof CompanyRouteWithChildren
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/press': typeof PressRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
-  '/talent': typeof TalentRoute
+  '/talent': typeof TalentRouteWithChildren
   '/admin/companies': typeof AdminCompaniesRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/users': typeof AdminUsersRoute
@@ -223,10 +292,13 @@ export interface FileRoutesById {
   '/app/jobs': typeof AppJobsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/profile': typeof AppProfileRoute
+  '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/jobs/$jobId': typeof JobsJobIdRoute
+  '/talent/$talentId': typeof TalentTalentIdRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
   '/company/': typeof CompanyIndexRoute
@@ -237,10 +309,15 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/app'
+    | '/careers'
+    | '/challenges'
     | '/companies'
     | '/company'
+    | '/contact'
     | '/login'
     | '/manifesto'
+    | '/press'
+    | '/pricing'
     | '/signup'
     | '/talent'
     | '/admin/companies'
@@ -251,19 +328,27 @@ export interface FileRouteTypes {
     | '/app/jobs'
     | '/app/notifications'
     | '/app/profile'
+    | '/challenges/$challengeId'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/jobs/$jobId'
+    | '/talent/$talentId'
     | '/admin/'
     | '/app/'
     | '/company/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/careers'
+    | '/challenges'
     | '/companies'
+    | '/contact'
     | '/login'
     | '/manifesto'
+    | '/press'
+    | '/pricing'
     | '/signup'
     | '/talent'
     | '/admin/companies'
@@ -274,10 +359,13 @@ export interface FileRouteTypes {
     | '/app/jobs'
     | '/app/notifications'
     | '/app/profile'
+    | '/challenges/$challengeId'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/jobs/$jobId'
+    | '/talent/$talentId'
     | '/admin'
     | '/app'
     | '/company'
@@ -286,10 +374,15 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/app'
+    | '/careers'
+    | '/challenges'
     | '/companies'
     | '/company'
+    | '/contact'
     | '/login'
     | '/manifesto'
+    | '/press'
+    | '/pricing'
     | '/signup'
     | '/talent'
     | '/admin/companies'
@@ -300,10 +393,13 @@ export interface FileRouteTypes {
     | '/app/jobs'
     | '/app/notifications'
     | '/app/profile'
+    | '/challenges/$challengeId'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/jobs/$jobId'
+    | '/talent/$talentId'
     | '/admin/'
     | '/app/'
     | '/company/'
@@ -313,12 +409,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
+  CareersRoute: typeof CareersRoute
+  ChallengesRoute: typeof ChallengesRouteWithChildren
   CompaniesRoute: typeof CompaniesRoute
   CompanyRoute: typeof CompanyRouteWithChildren
+  ContactRoute: typeof ContactRoute
   LoginRoute: typeof LoginRoute
   ManifestoRoute: typeof ManifestoRoute
+  PressRoute: typeof PressRoute
+  PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
-  TalentRoute: typeof TalentRoute
+  TalentRoute: typeof TalentRouteWithChildren
+  JobsJobIdRoute: typeof JobsJobIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -337,6 +439,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/press': {
+      id: '/press'
+      path: '/press'
+      fullPath: '/press'
+      preLoaderRoute: typeof PressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/manifesto': {
       id: '/manifesto'
       path: '/manifesto'
@@ -351,6 +467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/company': {
       id: '/company'
       path: '/company'
@@ -363,6 +486,20 @@ declare module '@tanstack/react-router' {
       path: '/companies'
       fullPath: '/companies'
       preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/challenges': {
+      id: '/challenges'
+      path: '/challenges'
+      fullPath: '/challenges'
+      preLoaderRoute: typeof ChallengesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/careers': {
+      id: '/careers'
+      path: '/careers'
+      fullPath: '/careers'
+      preLoaderRoute: typeof CareersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -407,6 +544,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/talent/$talentId': {
+      id: '/talent/$talentId'
+      path: '/$talentId'
+      fullPath: '/talent/$talentId'
+      preLoaderRoute: typeof TalentTalentIdRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/jobs/$jobId': {
+      id: '/jobs/$jobId'
+      path: '/jobs/$jobId'
+      fullPath: '/jobs/$jobId'
+      preLoaderRoute: typeof JobsJobIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/company/jobs': {
       id: '/company/jobs'
       path: '/jobs'
@@ -434,6 +585,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/company/candidates'
       preLoaderRoute: typeof CompanyCandidatesRouteImport
       parentRoute: typeof CompanyRoute
+    }
+    '/challenges/$challengeId': {
+      id: '/challenges/$challengeId'
+      path: '/$challengeId'
+      fullPath: '/challenges/$challengeId'
+      preLoaderRoute: typeof ChallengesChallengeIdRouteImport
+      parentRoute: typeof ChallengesRoute
     }
     '/app/profile': {
       id: '/app/profile'
@@ -530,6 +688,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ChallengesRouteChildren {
+  ChallengesChallengeIdRoute: typeof ChallengesChallengeIdRoute
+}
+
+const ChallengesRouteChildren: ChallengesRouteChildren = {
+  ChallengesChallengeIdRoute: ChallengesChallengeIdRoute,
+}
+
+const ChallengesRouteWithChildren = ChallengesRoute._addFileChildren(
+  ChallengesRouteChildren,
+)
+
 interface CompanyRouteChildren {
   CompanyCandidatesRoute: typeof CompanyCandidatesRoute
   CompanyChallengesRoute: typeof CompanyChallengesRoute
@@ -549,16 +719,33 @@ const CompanyRouteChildren: CompanyRouteChildren = {
 const CompanyRouteWithChildren =
   CompanyRoute._addFileChildren(CompanyRouteChildren)
 
+interface TalentRouteChildren {
+  TalentTalentIdRoute: typeof TalentTalentIdRoute
+}
+
+const TalentRouteChildren: TalentRouteChildren = {
+  TalentTalentIdRoute: TalentTalentIdRoute,
+}
+
+const TalentRouteWithChildren =
+  TalentRoute._addFileChildren(TalentRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AppRoute: AppRouteWithChildren,
+  CareersRoute: CareersRoute,
+  ChallengesRoute: ChallengesRouteWithChildren,
   CompaniesRoute: CompaniesRoute,
   CompanyRoute: CompanyRouteWithChildren,
+  ContactRoute: ContactRoute,
   LoginRoute: LoginRoute,
   ManifestoRoute: ManifestoRoute,
+  PressRoute: PressRoute,
+  PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
-  TalentRoute: TalentRoute,
+  TalentRoute: TalentRouteWithChildren,
+  JobsJobIdRoute: JobsJobIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
