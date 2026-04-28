@@ -43,6 +43,12 @@ export const Route = createRootRoute({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Skill Network — Hire proven skills, not resumes" },
+      { name: "description", content: "Skill Forge is a premium platform connecting talent and companies through proven skills and project-based evaluations." },
+      { property: "og:description", content: "Skill Forge is a premium platform connecting talent and companies through proven skills and project-based evaluations." },
+      { name: "twitter:description", content: "Skill Forge is a premium platform connecting talent and companies through proven skills and project-based evaluations." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c73c6bbc-7707-4282-9d69-804185a1934a/id-preview-7ddf422b--655c0f96-28fe-414d-8691-0a415fda0f7a.lovable.app-1777372800715.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c73c6bbc-7707-4282-9d69-804185a1934a/id-preview-7ddf422b--655c0f96-28fe-414d-8691-0a415fda0f7a.lovable.app-1777372800715.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
