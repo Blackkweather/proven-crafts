@@ -9,38 +9,376 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TalentRouteImport } from './routes/talent'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ManifestoRouteImport } from './routes/manifesto'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as CompanyRouteImport } from './routes/company'
+import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CompanyIndexRouteImport } from './routes/company.index'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as CompanyJobsRouteImport } from './routes/company.jobs'
+import { Route as CompanyInboxRouteImport } from './routes/company.inbox'
+import { Route as CompanyChallengesRouteImport } from './routes/company.challenges'
+import { Route as CompanyCandidatesRouteImport } from './routes/company.candidates'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
+import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
+import { Route as AppJobsRouteImport } from './routes/app.jobs'
+import { Route as AppInboxRouteImport } from './routes/app.inbox'
+import { Route as AppChallengesRouteImport } from './routes/app.challenges'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminModerationRouteImport } from './routes/admin.moderation'
+import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
 
+const TalentRoute = TalentRouteImport.update({
+  id: '/talent',
+  path: '/talent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManifestoRoute = ManifestoRouteImport.update({
+  id: '/manifesto',
+  path: '/manifesto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyRoute = CompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompaniesRoute = CompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompanyIndexRoute = CompanyIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const CompanyJobsRoute = CompanyJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const CompanyInboxRoute = CompanyInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const CompanyChallengesRoute = CompanyChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const CompanyCandidatesRoute = CompanyCandidatesRouteImport.update({
+  id: '/candidates',
+  path: '/candidates',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsRoute = AppJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChallengesRoute = AppChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
+  getParentRoute: () => AppRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminModerationRoute = AdminModerationRouteImport.update({
+  id: '/moderation',
+  path: '/moderation',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCompaniesRoute = AdminCompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/app': typeof AppRouteWithChildren
+  '/companies': typeof CompaniesRoute
+  '/company': typeof CompanyRouteWithChildren
+  '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
+  '/signup': typeof SignupRoute
+  '/talent': typeof TalentRoute
+  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/moderation': typeof AdminModerationRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/app/challenges': typeof AppChallengesRoute
+  '/app/inbox': typeof AppInboxRoute
+  '/app/jobs': typeof AppJobsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/company/candidates': typeof CompanyCandidatesRoute
+  '/company/challenges': typeof CompanyChallengesRoute
+  '/company/inbox': typeof CompanyInboxRoute
+  '/company/jobs': typeof CompanyJobsRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/company/': typeof CompanyIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/companies': typeof CompaniesRoute
+  '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
+  '/signup': typeof SignupRoute
+  '/talent': typeof TalentRoute
+  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/moderation': typeof AdminModerationRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/app/challenges': typeof AppChallengesRoute
+  '/app/inbox': typeof AppInboxRoute
+  '/app/jobs': typeof AppJobsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/company/candidates': typeof CompanyCandidatesRoute
+  '/company/challenges': typeof CompanyChallengesRoute
+  '/company/inbox': typeof CompanyInboxRoute
+  '/company/jobs': typeof CompanyJobsRoute
+  '/admin': typeof AdminIndexRoute
+  '/app': typeof AppIndexRoute
+  '/company': typeof CompanyIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/app': typeof AppRouteWithChildren
+  '/companies': typeof CompaniesRoute
+  '/company': typeof CompanyRouteWithChildren
+  '/login': typeof LoginRoute
+  '/manifesto': typeof ManifestoRoute
+  '/signup': typeof SignupRoute
+  '/talent': typeof TalentRoute
+  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/moderation': typeof AdminModerationRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/app/challenges': typeof AppChallengesRoute
+  '/app/inbox': typeof AppInboxRoute
+  '/app/jobs': typeof AppJobsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/company/candidates': typeof CompanyCandidatesRoute
+  '/company/challenges': typeof CompanyChallengesRoute
+  '/company/inbox': typeof CompanyInboxRoute
+  '/company/jobs': typeof CompanyJobsRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/company/': typeof CompanyIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/companies'
+    | '/company'
+    | '/login'
+    | '/manifesto'
+    | '/signup'
+    | '/talent'
+    | '/admin/companies'
+    | '/admin/moderation'
+    | '/admin/users'
+    | '/app/challenges'
+    | '/app/inbox'
+    | '/app/jobs'
+    | '/app/notifications'
+    | '/app/profile'
+    | '/company/candidates'
+    | '/company/challenges'
+    | '/company/inbox'
+    | '/company/jobs'
+    | '/admin/'
+    | '/app/'
+    | '/company/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/companies'
+    | '/login'
+    | '/manifesto'
+    | '/signup'
+    | '/talent'
+    | '/admin/companies'
+    | '/admin/moderation'
+    | '/admin/users'
+    | '/app/challenges'
+    | '/app/inbox'
+    | '/app/jobs'
+    | '/app/notifications'
+    | '/app/profile'
+    | '/company/candidates'
+    | '/company/challenges'
+    | '/company/inbox'
+    | '/company/jobs'
+    | '/admin'
+    | '/app'
+    | '/company'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/companies'
+    | '/company'
+    | '/login'
+    | '/manifesto'
+    | '/signup'
+    | '/talent'
+    | '/admin/companies'
+    | '/admin/moderation'
+    | '/admin/users'
+    | '/app/challenges'
+    | '/app/inbox'
+    | '/app/jobs'
+    | '/app/notifications'
+    | '/app/profile'
+    | '/company/candidates'
+    | '/company/challenges'
+    | '/company/inbox'
+    | '/company/jobs'
+    | '/admin/'
+    | '/app/'
+    | '/company/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  AppRoute: typeof AppRouteWithChildren
+  CompaniesRoute: typeof CompaniesRoute
+  CompanyRoute: typeof CompanyRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  ManifestoRoute: typeof ManifestoRoute
+  SignupRoute: typeof SignupRoute
+  TalentRoute: typeof TalentRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/talent': {
+      id: '/talent'
+      path: '/talent'
+      fullPath: '/talent'
+      preLoaderRoute: typeof TalentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifesto': {
+      id: '/manifesto'
+      path: '/manifesto'
+      fullPath: '/manifesto'
+      preLoaderRoute: typeof ManifestoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company': {
+      id: '/company'
+      path: '/company'
+      fullPath: '/company'
+      preLoaderRoute: typeof CompanyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies': {
+      id: '/companies'
+      path: '/companies'
+      fullPath: '/companies'
+      preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +386,179 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/company/': {
+      id: '/company/'
+      path: '/'
+      fullPath: '/company/'
+      preLoaderRoute: typeof CompanyIndexRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/company/jobs': {
+      id: '/company/jobs'
+      path: '/jobs'
+      fullPath: '/company/jobs'
+      preLoaderRoute: typeof CompanyJobsRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/company/inbox': {
+      id: '/company/inbox'
+      path: '/inbox'
+      fullPath: '/company/inbox'
+      preLoaderRoute: typeof CompanyInboxRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/company/challenges': {
+      id: '/company/challenges'
+      path: '/challenges'
+      fullPath: '/company/challenges'
+      preLoaderRoute: typeof CompanyChallengesRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/company/candidates': {
+      id: '/company/candidates'
+      path: '/candidates'
+      fullPath: '/company/candidates'
+      preLoaderRoute: typeof CompanyCandidatesRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/jobs': {
+      id: '/app/jobs'
+      path: '/jobs'
+      fullPath: '/app/jobs'
+      preLoaderRoute: typeof AppJobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/inbox': {
+      id: '/app/inbox'
+      path: '/inbox'
+      fullPath: '/app/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/challenges': {
+      id: '/app/challenges'
+      path: '/challenges'
+      fullPath: '/app/challenges'
+      preLoaderRoute: typeof AppChallengesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/moderation': {
+      id: '/admin/moderation'
+      path: '/moderation'
+      fullPath: '/admin/moderation'
+      preLoaderRoute: typeof AdminModerationRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/companies': {
+      id: '/admin/companies'
+      path: '/companies'
+      fullPath: '/admin/companies'
+      preLoaderRoute: typeof AdminCompaniesRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminCompaniesRoute: typeof AdminCompaniesRoute
+  AdminModerationRoute: typeof AdminModerationRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminCompaniesRoute: AdminCompaniesRoute,
+  AdminModerationRoute: AdminModerationRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface AppRouteChildren {
+  AppChallengesRoute: typeof AppChallengesRoute
+  AppInboxRoute: typeof AppInboxRoute
+  AppJobsRoute: typeof AppJobsRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppChallengesRoute: AppChallengesRoute,
+  AppInboxRoute: AppInboxRoute,
+  AppJobsRoute: AppJobsRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface CompanyRouteChildren {
+  CompanyCandidatesRoute: typeof CompanyCandidatesRoute
+  CompanyChallengesRoute: typeof CompanyChallengesRoute
+  CompanyInboxRoute: typeof CompanyInboxRoute
+  CompanyJobsRoute: typeof CompanyJobsRoute
+  CompanyIndexRoute: typeof CompanyIndexRoute
+}
+
+const CompanyRouteChildren: CompanyRouteChildren = {
+  CompanyCandidatesRoute: CompanyCandidatesRoute,
+  CompanyChallengesRoute: CompanyChallengesRoute,
+  CompanyInboxRoute: CompanyInboxRoute,
+  CompanyJobsRoute: CompanyJobsRoute,
+  CompanyIndexRoute: CompanyIndexRoute,
+}
+
+const CompanyRouteWithChildren =
+  CompanyRoute._addFileChildren(CompanyRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  AppRoute: AppRouteWithChildren,
+  CompaniesRoute: CompaniesRoute,
+  CompanyRoute: CompanyRouteWithChildren,
+  LoginRoute: LoginRoute,
+  ManifestoRoute: ManifestoRoute,
+  SignupRoute: SignupRoute,
+  TalentRoute: TalentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
