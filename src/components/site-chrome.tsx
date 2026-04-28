@@ -89,8 +89,24 @@ export function SiteFooter() {
             A hiring platform built around proven skills, not paper credentials. Made for the people who actually do the work.
           </p>
         </div>
-        <FooterCol title="Product" items={["For talent", "For companies", "Challenges", "Pricing"]} />
-        <FooterCol title="Company" items={["Manifesto", "Press", "Careers", "Contact"]} />
+        <FooterCol
+          title="Product"
+          items={[
+            { label: "For talent", to: "/talent" },
+            { label: "For companies", to: "/companies" },
+            { label: "Challenges", to: "/challenges" },
+            { label: "Pricing", to: "/pricing" },
+          ]}
+        />
+        <FooterCol
+          title="Company"
+          items={[
+            { label: "Manifesto", to: "/manifesto" },
+            { label: "Press", to: "/press" },
+            { label: "Careers", to: "/careers" },
+            { label: "Contact", to: "/contact" },
+          ]}
+        />
       </div>
       <div className="border-t border-border">
         <div className="container mx-auto flex flex-col items-start justify-between gap-2 px-6 py-5 text-xs text-muted-foreground md:flex-row md:items-center">
@@ -102,7 +118,9 @@ export function SiteFooter() {
   );
 }
 
-function FooterCol({ title, items }: { title: string; items: string[] }) {
+type FooterLink = { label: string; to: string };
+
+function FooterCol({ title, items }: { title: string; items: FooterLink[] }) {
   return (
     <div>
       <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -110,10 +128,13 @@ function FooterCol({ title, items }: { title: string; items: string[] }) {
       </div>
       <ul className="space-y-2 text-sm">
         {items.map((i) => (
-          <li key={i}>
-            <a className="text-foreground/80 transition-colors hover:text-foreground" href="#">
-              {i}
-            </a>
+          <li key={i.label}>
+            <Link
+              to={i.to}
+              className="text-foreground/80 transition-colors hover:text-foreground"
+            >
+              {i.label}
+            </Link>
           </li>
         ))}
       </ul>
