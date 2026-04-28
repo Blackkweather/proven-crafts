@@ -6,7 +6,7 @@ export const Route = createFileRoute("/app/inbox")({
   component: InboxPage,
 });
 
-function InboxPage() {
+export function InboxPage() {
   const [convos, setConvos] = useState(initial);
   const [activeId, setActiveId] = useState(convos[0]?.id);
   const [draft, setDraft] = useState("");
