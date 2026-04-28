@@ -14,7 +14,14 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
+import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
+import { Route as AppJobsRouteImport } from './routes/app.jobs'
+import { Route as AppInboxRouteImport } from './routes/app.inbox'
+import { Route as AppChallengesRouteImport } from './routes/app.challenges'
 
 const TalentRoute = TalentRouteImport.update({
   id: '/talent',
@@ -41,19 +48,61 @@ const CompaniesRoute = CompaniesRouteImport.update({
   path: '/companies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsRoute = AppJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChallengesRoute = AppChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
   '/companies': typeof CompaniesRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRoute
+  '/app/challenges': typeof AppChallengesRoute
+  '/app/inbox': typeof AppInboxRoute
+  '/app/jobs': typeof AppJobsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,39 +111,79 @@ export interface FileRoutesByTo {
   '/manifesto': typeof ManifestoRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRoute
+  '/app/challenges': typeof AppChallengesRoute
+  '/app/inbox': typeof AppInboxRoute
+  '/app/jobs': typeof AppJobsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
   '/companies': typeof CompaniesRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRoute
+  '/app/challenges': typeof AppChallengesRoute
+  '/app/inbox': typeof AppInboxRoute
+  '/app/jobs': typeof AppJobsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/app'
     | '/companies'
     | '/login'
     | '/manifesto'
     | '/signup'
     | '/talent'
+    | '/app/challenges'
+    | '/app/inbox'
+    | '/app/jobs'
+    | '/app/notifications'
+    | '/app/profile'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/companies' | '/login' | '/manifesto' | '/signup' | '/talent'
-  id:
-    | '__root__'
+  to:
     | '/'
     | '/companies'
     | '/login'
     | '/manifesto'
     | '/signup'
     | '/talent'
+    | '/app/challenges'
+    | '/app/inbox'
+    | '/app/jobs'
+    | '/app/notifications'
+    | '/app/profile'
+    | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/companies'
+    | '/login'
+    | '/manifesto'
+    | '/signup'
+    | '/talent'
+    | '/app/challenges'
+    | '/app/inbox'
+    | '/app/jobs'
+    | '/app/notifications'
+    | '/app/profile'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   CompaniesRoute: typeof CompaniesRoute
   LoginRoute: typeof LoginRoute
   ManifestoRoute: typeof ManifestoRoute
@@ -139,6 +228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -146,11 +242,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/jobs': {
+      id: '/app/jobs'
+      path: '/jobs'
+      fullPath: '/app/jobs'
+      preLoaderRoute: typeof AppJobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/inbox': {
+      id: '/app/inbox'
+      path: '/inbox'
+      fullPath: '/app/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/challenges': {
+      id: '/app/challenges'
+      path: '/challenges'
+      fullPath: '/app/challenges'
+      preLoaderRoute: typeof AppChallengesRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppChallengesRoute: typeof AppChallengesRoute
+  AppInboxRoute: typeof AppInboxRoute
+  AppJobsRoute: typeof AppJobsRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppChallengesRoute: AppChallengesRoute,
+  AppInboxRoute: AppInboxRoute,
+  AppJobsRoute: AppJobsRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   CompaniesRoute: CompaniesRoute,
   LoginRoute: LoginRoute,
   ManifestoRoute: ManifestoRoute,

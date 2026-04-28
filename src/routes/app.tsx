@@ -8,7 +8,7 @@ export const Route = createFileRoute("/app")({
     if (!raw) throw redirect({ to: "/login" });
     try {
       const u = JSON.parse(raw);
-      if (u.role !== "talent") throw redirect({ to: u.role === "company" ? "/company" : "/admin" });
+      if (u.role !== "talent") throw redirect({ to: (u.role === "company" ? "/company" : "/admin") as string });
     } catch {
       throw redirect({ to: "/login" });
     }

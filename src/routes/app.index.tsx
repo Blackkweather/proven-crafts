@@ -126,8 +126,7 @@ function SectionHead({ title, link }: { title: string; link: { to: string; label
   return (
     <div className="flex items-end justify-between">
       <h2 className="font-display text-2xl">{title}</h2>
-      {/* @ts-expect-error - dynamic link target */}
-      <Link to={link.to} className="text-sm text-muted-foreground hover:text-foreground">{link.label} →</Link>
+      <Link to={link.to as string} className="text-sm text-muted-foreground hover:text-foreground">{link.label} →</Link>
     </div>
   );
 }
