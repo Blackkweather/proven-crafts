@@ -11,10 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TalentRouteImport } from './routes/talent'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PressRouteImport } from './routes/press'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CompanyRouteImport } from './routes/company'
 import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as ChallengesRouteImport } from './routes/challenges'
+import { Route as CareersRouteImport } from './routes/careers'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -44,6 +49,16 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PressRoute = PressRouteImport.update({
+  id: '/press',
+  path: '/press',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManifestoRoute = ManifestoRouteImport.update({
   id: '/manifesto',
   path: '/manifesto',
@@ -54,6 +69,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompanyRoute = CompanyRouteImport.update({
   id: '/company',
   path: '/company',
@@ -62,6 +82,16 @@ const CompanyRoute = CompanyRouteImport.update({
 const CompaniesRoute = CompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChallengesRoute = ChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CareersRoute = CareersRouteImport.update({
+  id: '/careers',
+  path: '/careers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -159,10 +189,15 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
+  '/careers': typeof CareersRoute
+  '/challenges': typeof ChallengesRoute
   '/companies': typeof CompaniesRoute
   '/company': typeof CompanyRouteWithChildren
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/press': typeof PressRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRoute
   '/admin/companies': typeof AdminCompaniesRoute
@@ -183,9 +218,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/careers': typeof CareersRoute
+  '/challenges': typeof ChallengesRoute
   '/companies': typeof CompaniesRoute
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/press': typeof PressRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRoute
   '/admin/companies': typeof AdminCompaniesRoute
@@ -209,10 +249,15 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
+  '/careers': typeof CareersRoute
+  '/challenges': typeof ChallengesRoute
   '/companies': typeof CompaniesRoute
   '/company': typeof CompanyRouteWithChildren
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/press': typeof PressRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRoute
   '/admin/companies': typeof AdminCompaniesRoute
@@ -237,10 +282,15 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/app'
+    | '/careers'
+    | '/challenges'
     | '/companies'
     | '/company'
+    | '/contact'
     | '/login'
     | '/manifesto'
+    | '/press'
+    | '/pricing'
     | '/signup'
     | '/talent'
     | '/admin/companies'
@@ -261,9 +311,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/careers'
+    | '/challenges'
     | '/companies'
+    | '/contact'
     | '/login'
     | '/manifesto'
+    | '/press'
+    | '/pricing'
     | '/signup'
     | '/talent'
     | '/admin/companies'
@@ -286,10 +341,15 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/app'
+    | '/careers'
+    | '/challenges'
     | '/companies'
     | '/company'
+    | '/contact'
     | '/login'
     | '/manifesto'
+    | '/press'
+    | '/pricing'
     | '/signup'
     | '/talent'
     | '/admin/companies'
@@ -313,10 +373,15 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
+  CareersRoute: typeof CareersRoute
+  ChallengesRoute: typeof ChallengesRoute
   CompaniesRoute: typeof CompaniesRoute
   CompanyRoute: typeof CompanyRouteWithChildren
+  ContactRoute: typeof ContactRoute
   LoginRoute: typeof LoginRoute
   ManifestoRoute: typeof ManifestoRoute
+  PressRoute: typeof PressRoute
+  PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
   TalentRoute: typeof TalentRoute
 }
@@ -337,6 +402,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/press': {
+      id: '/press'
+      path: '/press'
+      fullPath: '/press'
+      preLoaderRoute: typeof PressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/manifesto': {
       id: '/manifesto'
       path: '/manifesto'
@@ -351,6 +430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/company': {
       id: '/company'
       path: '/company'
@@ -363,6 +449,20 @@ declare module '@tanstack/react-router' {
       path: '/companies'
       fullPath: '/companies'
       preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/challenges': {
+      id: '/challenges'
+      path: '/challenges'
+      fullPath: '/challenges'
+      preLoaderRoute: typeof ChallengesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/careers': {
+      id: '/careers'
+      path: '/careers'
+      fullPath: '/careers'
+      preLoaderRoute: typeof CareersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -553,10 +653,15 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AppRoute: AppRouteWithChildren,
+  CareersRoute: CareersRoute,
+  ChallengesRoute: ChallengesRoute,
   CompaniesRoute: CompaniesRoute,
   CompanyRoute: CompanyRouteWithChildren,
+  ContactRoute: ContactRoute,
   LoginRoute: LoginRoute,
   ManifestoRoute: ManifestoRoute,
+  PressRoute: PressRoute,
+  PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
   TalentRoute: TalentRoute,
 }
