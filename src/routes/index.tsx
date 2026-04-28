@@ -28,28 +28,28 @@ function Landing() {
           <div className="lg:col-span-7">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              Now matching 12,400 verified contributors
+              AI-powered matching · for talent & companies
             </div>
             <h1 className="mt-6 font-display text-5xl leading-[1.05] text-balance md:text-6xl lg:text-7xl">
-              Hire proven skills.
+              Hiring, rebuilt around proven skills.
               <br />
-              <span className="italic text-muted-foreground">Not resumes.</span>
+              <span className="italic text-muted-foreground">Powered by AI.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground text-pretty">
-              Skill Network is an editorial hiring platform. People show their work; companies run real challenges; matches happen on signal — not on keywords.
+              Skill Network uses AI to match talent and companies on real work — not keywords. Candidates showcase shipped projects; companies post focused challenges; our models surface the right people in days, not months.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
               <Link
                 to="/signup"
                 className="rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
               >
-                Showcase your work
+                I'm talent — get matched
               </Link>
               <Link
                 to="/companies"
                 className="rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
               >
-                Hire on Skill Network →
+                I'm hiring — find talent →
               </Link>
             </div>
 
