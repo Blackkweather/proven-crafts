@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useAuth, dashboardPathFor, type Role } from "@/lib/auth";
+import { useAuth, dashboardPathFor, DEMO_AUTH_ENABLED, type Role } from "@/lib/auth";
 import { AuthLayout, Field, RolePicker } from "./login";
 
 export const Route = createFileRoute("/signup")({
@@ -14,10 +14,12 @@ function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("talent");
+  const [error, setError] = useState<string | null>(null);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    signUp(name, email, password, role);
+    const res = signUp(name, email, password, role);
+    if (!res.ok) { setError(res.error ?? "Sign-up failed"); return; }
     router.navigate({ to: dashboardPathFor(role) });
   }
 
