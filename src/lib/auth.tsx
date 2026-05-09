@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 
 export type Role = "talent" | "company" | "admin";
 export type AccountType = "talent" | "company";
@@ -125,12 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     },
     signInWithGoogle: async () => {
-      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo },
-      });
-      if (error) return { ok: false, error: error.message };
+      const redirect_uri = typeof window !== "undefined" ? window.location.origin : undefined;
+      const res = await lovable.auth.signInWithOAuth("google", { redirect_uri });
+      if (res.error) return { ok: false, error: res.error.message };
       return { ok: true };
     },
     signOut: async () => {
