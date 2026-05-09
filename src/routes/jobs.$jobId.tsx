@@ -118,7 +118,7 @@ function JobDetail() {
 
             <Block title="Required skills">
               <div className="flex flex-wrap gap-2">
-                {job.requiredSkills.map((s) => (
+                {job.requiredSkills.map((s: string) => (
                   <SkillTag key={s} skill={{ name: s, level: "advanced" }} tone="muted" />
                 ))}
               </div>
