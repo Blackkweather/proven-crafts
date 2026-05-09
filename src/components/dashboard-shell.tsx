@@ -24,7 +24,8 @@ export function DashboardShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const displayName = profile?.display_name || user?.email?.split("@")[0] || "Guest";
   const router = useRouter();
   const location = useLocation();
 
@@ -70,15 +71,15 @@ export function DashboardShell({
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3 rounded-md px-2 py-2">
             <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
-              {(user?.name ?? "?").slice(0, 1)}
+              {displayName.slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium">{user?.name ?? "Guest"}</div>
+              <div className="truncate text-sm font-medium">{displayName}</div>
               <div className="truncate text-xs text-muted-foreground">{user?.email ?? ""}</div>
             </div>
             <button
-              onClick={() => {
-                signOut();
+              onClick={async () => {
+                await signOut();
                 router.navigate({ to: "/" });
               }}
               className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"

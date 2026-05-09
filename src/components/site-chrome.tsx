@@ -2,7 +2,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { useAuth, dashboardPathFor } from "@/lib/auth";
 
 export function SiteHeader() {
-  const { user, signOut } = useAuth();
+  const { user, primaryRole, signOut } = useAuth();
   const router = useRouter();
 
   return (
@@ -29,14 +29,14 @@ export function SiteHeader() {
           {user ? (
             <>
               <Link
-                to={dashboardPathFor(user.role)}
+                to={dashboardPathFor(primaryRole)}
                 className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent"
               >
                 Dashboard
               </Link>
               <button
-                onClick={() => {
-                  signOut();
+                onClick={async () => {
+                  await signOut();
                   router.navigate({ to: "/" });
                 }}
                 className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
