@@ -29,14 +29,14 @@ export function SiteHeader() {
           {user ? (
             <>
               <Link
-                to={dashboardPathFor(user.role)}
+                to={dashboardPathFor(primaryRole)}
                 className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent"
               >
                 Dashboard
               </Link>
               <button
-                onClick={() => {
-                  signOut();
+                onClick={async () => {
+                  await signOut();
                   router.navigate({ to: "/" });
                 }}
                 className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
