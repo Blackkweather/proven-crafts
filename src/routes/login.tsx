@@ -29,6 +29,14 @@ function Login() {
       footer={<>New to Skill Network? <Link to="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">Create an account</Link></>}
     >
       <form onSubmit={submit} className="space-y-5">
+        {!DEMO_AUTH_ENABLED && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+            Sign-in is disabled in this preview. Connect Lovable Cloud to enable real authentication.
+          </div>
+        )}
+        {error && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">{error}</div>
+        )}
         <RolePicker value={role} onChange={setRole} />
         <Field label="Email">
           <input value={email} onChange={(e) => setEmail(e.target.value)} required type="email" className={inputCls} />
@@ -36,7 +44,7 @@ function Login() {
         <Field label="Password">
           <input value={password} onChange={(e) => setPassword(e.target.value)} required type="password" className={inputCls} />
         </Field>
-        <button className="w-full rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+        <button disabled={!DEMO_AUTH_ENABLED} className="w-full rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
           Sign in
         </button>
       </form>
