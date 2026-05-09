@@ -92,7 +92,7 @@ function TalentProfilePage() {
         <section className="mt-16">
           <h2 className="font-display text-2xl">Skills</h2>
           <div className="mt-5 flex flex-wrap gap-2">
-            {talent.skills.map((s: { name: string; level: string }) => (
+            {talent.skills.map((s) => (
               <SkillTag key={s.name} skill={s} tone={s.level === "expert" ? "primary" : "default"} />
             ))}
           </div>
@@ -102,7 +102,7 @@ function TalentProfilePage() {
           <section className="mt-16">
             <h2 className="font-display text-2xl">Selected work</h2>
             <div className="mt-6 grid gap-5 md:grid-cols-2">
-              {talent.portfolio.map((p: { id: string; type: string; year: number | string; title: string; summary: string; tags: string[] }) => (
+              {talent.portfolio.map((p) => (
                 <article key={p.id} className="rounded-2xl border border-border bg-card p-6 transition-shadow hover:shadow-elevated">
                   <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
                     <span>{p.type}</span>
