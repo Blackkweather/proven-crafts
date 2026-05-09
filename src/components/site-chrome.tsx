@@ -2,7 +2,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { useAuth, dashboardPathFor } from "@/lib/auth";
 
 export function SiteHeader() {
-  const { user, signOut } = useAuth();
+  const { user, primaryRole, signOut } = useAuth();
   const router = useRouter();
 
   return (
