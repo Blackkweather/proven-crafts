@@ -100,7 +100,7 @@ function ChallengeDetail() {
             </Block>
             <Block title="Required skills">
               <div className="flex flex-wrap gap-2">
-                {challenge.requiredSkills.map((s) => (
+                {challenge.requiredSkills.map((s: string) => (
                   <span key={s} className="rounded-full border border-border bg-card px-3 py-1 text-xs">
                     {s}
                   </span>

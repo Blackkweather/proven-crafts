@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useAuth, dashboardPathFor, type Role } from "@/lib/auth";
+import { useAuth, dashboardPathFor, DEMO_AUTH_ENABLED, type Role } from "@/lib/auth";
 import { AuthLayout, Field, RolePicker } from "./login";
 
 export const Route = createFileRoute("/signup")({
@@ -14,10 +14,12 @@ function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("talent");
+  const [error, setError] = useState<string | null>(null);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    signUp(name, email, password, role);
+    const res = signUp(name, email, password, role);
+    if (!res.ok) { setError(res.error ?? "Sign-up failed"); return; }
     router.navigate({ to: dashboardPathFor(role) });
   }
 
@@ -29,6 +31,14 @@ function Signup() {
       footer={<>Already a member? <Link to="/login" className="font-medium text-foreground underline-offset-4 hover:underline">Sign in</Link></>}
     >
       <form onSubmit={submit} className="space-y-5">
+        {!DEMO_AUTH_ENABLED && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+            Sign-up is disabled in this preview. Connect Lovable Cloud to enable real accounts.
+          </div>
+        )}
+        {error && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">{error}</div>
+        )}
         <RolePicker value={role} onChange={setRole} />
         <Field label="Name">
           <input
@@ -51,7 +61,7 @@ function Signup() {
             className="w-full rounded-md border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
           />
         </Field>
-        <button className="w-full rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        <button disabled={!DEMO_AUTH_ENABLED} className="w-full rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
           Create account
         </button>
       </form>
