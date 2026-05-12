@@ -1,3 +1,18 @@
+// =============================================================================
+// hooks.ts — src/lib/hooks.ts
+// =============================================================================
+// React custom hooks that wrap the database functions in db.ts.
+// Each hook manages its own loading/error state so components don't have to.
+// Several hooks also set up Supabase Realtime subscriptions for live updates
+// (e.g., new messages appear instantly without polling).
+//
+// Import from this file in React components instead of calling db.ts directly —
+// hooks handle the async lifecycle, whereas db.ts functions are plain async
+// functions that you'd have to manage manually with useEffect + useState.
+//
+// KEYWORDS: STATE, DATABASE, API
+// =============================================================================
+
 /**
  * hooks.ts — React hooks wrapping db.ts for use in components.
  * Each hook handles loading / error state and, where applicable, sets up
@@ -48,11 +63,22 @@ const noop = () => {};
 // useProfile
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch a user's full profile (profile row + skills array + portfolio array).
+ * Re-fetches automatically when userId changes.
+ * Returns individual properties so destructuring is convenient for components.
+ *
+ * STATE: tracks `data` (FullProfile), `loading` (boolean), and `error` (string|null).
+ * DATABASE: calls fetchProfile(userId) from db.ts.
+ */
 export function useProfile(userId?: string) {
+  // STATE: data holds the full profile bundle; null while loading or if userId is absent
   const [data, setData] = useState<FullProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // `load` is memoized with useCallback so it only changes when userId changes.
+  // This prevents the useEffect below from re-running on unrelated renders.
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
@@ -71,6 +97,7 @@ export function useProfile(userId?: string) {
     load();
   }, [load]);
 
+  // Return flattened fields for ergonomic destructuring in components
   return {
     profile: data?.profile ?? null,
     skills: data?.skills ?? [],
@@ -85,7 +112,15 @@ export function useProfile(userId?: string) {
 // useJobs
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch the list of open jobs, optionally filtered by a search query.
+ * Re-fetches when the query changes (e.g., user types in a filter box).
+ *
+ * STATE: tracks `jobs` array, `loading`, and `error`.
+ * DATABASE: calls fetchJobs(query) from db.ts.
+ */
 export function useJobs(query?: string) {
+  // STATE: jobs is the array of job results, empty until loaded
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,6 +148,14 @@ export function useJobs(query?: string) {
 // useJob
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch a single job by ID.
+ * Uses a `cancelled` flag pattern to avoid setting state on an unmounted component
+ * (which would cause a React memory leak warning).
+ *
+ * STATE: tracks `job` (Job|null), `loading`, and `error`.
+ * DATABASE: calls fetchJob(jobId) from db.ts.
+ */
 export function useJob(jobId: string) {
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(false);
@@ -120,6 +163,8 @@ export function useJob(jobId: string) {
 
   useEffect(() => {
     if (!jobId) return;
+    // `cancelled` prevents a resolved promise from setting state after the
+    // component that called this hook has been removed from the page
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -145,6 +190,12 @@ export function useJob(jobId: string) {
 // useChallenges
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch the list of open challenges, optionally filtered by a search query.
+ *
+ * STATE: tracks `challenges` array, `loading`, and `error`.
+ * DATABASE: calls fetchChallenges(query) from db.ts.
+ */
 export function useChallenges(query?: string) {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(false);
@@ -173,6 +224,12 @@ export function useChallenges(query?: string) {
 // useChallenge
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch a single challenge by ID.
+ *
+ * STATE: tracks `challenge` (Challenge|null), `loading`, and `error`.
+ * DATABASE: calls fetchChallenge(challengeId) from db.ts.
+ */
 export function useChallenge(challengeId: string) {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(false);
@@ -205,6 +262,13 @@ export function useChallenge(challengeId: string) {
 // useMyApplications
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch the current talent user's job applications.
+ * Returns an empty array if talentId is not yet available (e.g., auth is loading).
+ *
+ * STATE: tracks `applications` array, `loading`, and `error`.
+ * DATABASE: calls fetchMyApplications(talentId) from db.ts.
+ */
 export function useMyApplications(talentId?: string) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
@@ -234,6 +298,12 @@ export function useMyApplications(talentId?: string) {
 // useMySubmissions
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch the current talent user's challenge submissions.
+ *
+ * STATE: tracks `submissions` array, `loading`, and `error`.
+ * DATABASE: calls fetchMySubmissions(talentId) from db.ts.
+ */
 export function useMySubmissions(talentId?: string) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(false);
@@ -266,6 +336,13 @@ export function useMySubmissions(talentId?: string) {
 // useCompanyPipeline
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch all job applications across a company's jobs (the hiring pipeline).
+ * Optionally filtered by status for Kanban-style board views.
+ *
+ * STATE: tracks `applications` array, `loading`, and `error`.
+ * DATABASE: calls fetchCompanyPipeline(companyId, status) from db.ts.
+ */
 export function useCompanyPipeline(companyId?: string, status?: string) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
@@ -295,6 +372,12 @@ export function useCompanyPipeline(companyId?: string, status?: string) {
 // useConversations
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch all conversations for the current user.
+ *
+ * STATE: tracks `conversations` array, `loading`, and `error`.
+ * DATABASE: calls fetchConversations(userId) from db.ts.
+ */
 export function useConversations(userId?: string) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -324,6 +407,18 @@ export function useConversations(userId?: string) {
 // useMessages (with Realtime subscription)
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch messages for a conversation AND subscribe to new messages in real time.
+ * When a new message arrives via the Supabase Realtime channel, it is appended
+ * to the local `messages` state immediately — no need to poll.
+ *
+ * Duplicate prevention: if the sender already added an optimistic update with
+ * the same ID, the incoming real-time message is discarded.
+ *
+ * STATE: tracks `messages` array, `loading`, and `error`.
+ * DATABASE: initial load calls fetchMessages(conversationId) from db.ts.
+ * API: subscribes to `postgres_changes` on the `messages` table via Supabase Realtime.
+ */
 export function useMessages(conversationId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -351,6 +446,8 @@ export function useMessages(conversationId: string) {
   }, [conversationId]);
 
   // Realtime subscription for new messages
+  // This runs a second useEffect so the subscription lifecycle is independent
+  // of the initial data load lifecycle
   useEffect(() => {
     if (!conversationId) return;
 
@@ -375,6 +472,7 @@ export function useMessages(conversationId: string) {
       )
       .subscribe();
 
+    // Cleanup: unsubscribe when the component unmounts or conversationId changes
     return () => {
       supabase.removeChannel(channel);
     };
@@ -387,6 +485,14 @@ export function useMessages(conversationId: string) {
 // useNotifications
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch notifications and provide a `markAllRead` action.
+ * The `unreadCount` is derived from the loaded data so it stays in sync
+ * without an extra DB query.
+ *
+ * STATE: tracks `notifications` array, `loading`, `error`, and derived `unreadCount`.
+ * DATABASE: calls fetchNotifications(userId) and markNotificationsRead(userId) from db.ts.
+ */
 export function useNotifications(userId?: string) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -409,12 +515,19 @@ export function useNotifications(userId?: string) {
     load();
   }, [load]);
 
+  // Derived state: count notifications that don't yet have a read_at timestamp
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
+  /**
+   * Mark all notifications as read both in the DB and in local state.
+   * We optimistically update local state without waiting for a refetch,
+   * so the badge clears instantly when the user opens the panel.
+   */
   const markAllRead = useCallback(async () => {
     if (!userId) return;
     try {
       await markNotificationsRead(userId);
+      // Optimistically update local state so the badge clears immediately
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })),
       );
@@ -433,9 +546,21 @@ export function useNotifications(userId?: string) {
 // useUnreadCounts (polls every 30 s + Realtime for instant updates)
 // ---------------------------------------------------------------------------
 
+/**
+ * Track the count of unread messages and notifications for the nav badge.
+ * Uses two strategies together for freshness vs. efficiency:
+ *   1. Polls the DB every 30 seconds (catches missed Realtime events)
+ *   2. Increments counts instantly via a Realtime subscription (no perceived lag)
+ *
+ * STATE: tracks `counts` (UnreadCounts), `loading`.
+ * DATABASE: calls fetchUnreadCounts(userId) from db.ts.
+ * API: subscribes to `notifications` and `messages` inserts via Supabase Realtime.
+ */
 export function useUnreadCounts(userId?: string) {
+  // STATE: starts at zero so the badge shows nothing before the first fetch
   const [counts, setCounts] = useState<UnreadCounts>({ messages: 0, notifications: 0 });
   const [loading, setLoading] = useState(false);
+  // Store the interval ID in a ref (not state) so it doesn't cause re-renders
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {
@@ -453,6 +578,7 @@ export function useUnreadCounts(userId?: string) {
     setLoading(true);
     refresh().finally(() => setLoading(false));
 
+    // Poll every 30 seconds as a safety net for missed Realtime events
     intervalRef.current = setInterval(refresh, 30_000);
 
     // Realtime: increment badge instantly on new notification or message
@@ -466,12 +592,14 @@ export function useUnreadCounts(userId?: string) {
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
+        // Increment notification count immediately — no round-trip needed
         () => setCounts((prev) => ({ ...prev, notifications: prev.notifications + 1 })),
       )
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
-        () => refresh(), // re-query so we only count messages in our conversations
+        // For messages we re-query so we only count messages in our conversations
+        () => refresh(),
       )
       .subscribe();
 
@@ -488,6 +616,12 @@ export function useUnreadCounts(userId?: string) {
 // useLeaderboard
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch the challenge leaderboard (all entries, sorted by rank).
+ *
+ * STATE: tracks `entries` (LeaderboardEntry[]), `loading`, and `error`.
+ * DATABASE: calls fetchLeaderboard() from db.ts.
+ */
 export function useLeaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -519,6 +653,15 @@ export function useLeaderboard() {
 // useMarketRates
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch market rate data, optionally for a specific list of skills.
+ * The `skillsKey` derived value is a stable string representation of the skills
+ * array so the effect only re-runs when the actual content changes, not every
+ * time the parent component re-renders with a new (but equal) inline array.
+ *
+ * STATE: tracks `rates` (MarketRate[]), `loading`, and `error`.
+ * DATABASE: calls fetchMarketRates(skills) from db.ts.
+ */
 export function useMarketRates(skills?: string[]) {
   const [rates, setRates] = useState<MarketRate[]>([]);
   const [loading, setLoading] = useState(false);
@@ -554,9 +697,23 @@ export function useMarketRates(skills?: string[]) {
 // useSearch (debounced 300 ms)
 // ---------------------------------------------------------------------------
 
+/**
+ * Debounced global search hook.
+ * Waits 300ms after the user stops typing before firing the query. This prevents
+ * a DB request for every keystroke and keeps the UI snappy.
+ *
+ * Returns immediately with empty results when query is blank so the UI shows
+ * a prompt instead of a spinner.
+ *
+ * STATE: tracks `results` (SearchResults), `loading`.
+ * DATABASE: calls searchAll(query) from db.ts after a 300ms debounce.
+ */
 export function useSearch(query: string) {
+  // STATE: results holds the last fetched search results across all three categories
   const [results, setResults] = useState<SearchResults>({ jobs: [], challenges: [], talent: [] });
   const [loading, setLoading] = useState(false);
+  // Store the debounce timer ID in a ref so it persists across renders without
+  // causing re-renders itself
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -568,8 +725,10 @@ export function useSearch(query: string) {
 
     setLoading(true);
 
+    // Cancel any pending debounce timer from the previous keystroke
     if (timerRef.current) clearTimeout(timerRef.current);
 
+    // Wait 300ms before firing the actual search query
     timerRef.current = setTimeout(async () => {
       try {
         const data = await searchAll(query);

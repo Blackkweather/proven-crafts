@@ -1,3 +1,18 @@
+// =============================================================================
+// db.ts — src/lib/db.ts
+// =============================================================================
+// This is the central data-access layer for the entire Skill Network frontend.
+// Every database operation (profiles, jobs, challenges, applications, messages,
+// notifications, leaderboard, etc.) is defined here as an async function that
+// calls Supabase directly via the browser-side client.
+//
+// All functions throw on error — callers are expected to catch and display the
+// error. The file also exports every TypeScript type that describes a database
+// row, making it the single source of truth for data shapes throughout the app.
+//
+// KEYWORDS: DATABASE, API, AUTH, VALIDATION
+// =============================================================================
+
 /**
  * db.ts — Async data service layer for Skill Network V2.
  * All functions throw on error; handle errors at the call site.
@@ -9,13 +24,23 @@ import { supabase } from "@/integrations/supabase/client";
 // Security helpers
 // ---------------------------------------------------------------------------
 
+// VALIDATION: This regex ensures any ID passed to the DB is a valid UUID.
+// Malformed IDs would cause Postgres errors or, worse, unexpected query matches.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Throw a clear error if a value is not a valid UUID.
+ * Used before any database query that relies on an ID to prevent injection-style bugs.
+ */
 function assertUUID(value: string, label = "id"): void {
   if (!UUID_RE.test(value)) throw new Error(`Invalid ${label}`);
 }
 
-/** Strip characters that break PostgREST .or() filter syntax. */
+/**
+ * Strip characters that break PostgREST .or() filter syntax.
+ * Characters like parentheses and commas are special in PostgREST query strings,
+ * so we remove them from user-supplied search terms before using them in queries.
+ */
 function sanitizeSearchTerm(term: string): string {
   return term.replace(/[(),."]/g, "");
 }
@@ -23,6 +48,10 @@ function sanitizeSearchTerm(term: string): string {
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+// These union types match the allowed values in the database enum columns.
+// Using TypeScript types here means the compiler will warn you if you try to
+// use an invalid value anywhere in the app.
 
 export type AccountType = "talent" | "company";
 export type Availability = "open" | "exploring" | "booked";
@@ -43,6 +72,11 @@ export type Badge = "gold" | "silver" | "bronze";
 export type ProfileVisibility = "anyone" | "companies" | "invited";
 export type AllowMessages = "anyone" | "companies" | "none";
 
+/**
+ * Represents a row from the `profiles` table.
+ * This is the core user record — both talent and company accounts share this
+ * table; the `account_type` field distinguishes them.
+ */
 export interface Profile {
   id: string;
   display_name: string;
@@ -86,8 +120,11 @@ export interface Profile {
   updated_at: string;
 }
 
+// ProfileUpdate is a helper type — it allows updating any profile field
+// except the immutable ones (id, timestamps). `Partial` makes all fields optional.
 export type ProfileUpdate = Partial<Omit<Profile, "id" | "created_at" | "updated_at">>;
 
+/** Represents a row from the `skills` table — a single skill belonging to a profile. */
 export interface Skill {
   id: string;
   profile_id: string;
@@ -97,6 +134,7 @@ export interface Skill {
   created_at: string;
 }
 
+/** Represents a row from the `portfolio_items` table — a work sample on a talent profile. */
 export interface PortfolioItem {
   id: string;
   profile_id: string;
@@ -111,6 +149,7 @@ export interface PortfolioItem {
   created_at: string;
 }
 
+/** Represents a step in a company's hiring process, from the `company_hiring_steps` table. */
 export interface HiringStep {
   id: string;
   company_id: string;
@@ -121,6 +160,10 @@ export interface HiringStep {
   paid: boolean;
 }
 
+/**
+ * Represents a row from the `jobs` table.
+ * The optional `company` field is populated when the query joins the profiles table.
+ */
 export interface Job {
   id: string;
   company_id: string;
@@ -137,6 +180,10 @@ export interface Job {
   company?: Profile;
 }
 
+/**
+ * Represents a row from the `challenges` table.
+ * Challenges are skill tests that companies post; talent submits entries.
+ */
 export interface Challenge {
   id: string;
   company_id: string;
@@ -152,6 +199,7 @@ export interface Challenge {
   company?: Profile;
 }
 
+/** Represents a talent's submission to a challenge, from the `submissions` table. */
 export interface Submission {
   id: string;
   challenge_id: string;
@@ -167,6 +215,7 @@ export interface Submission {
   talent?: Profile;
 }
 
+/** Represents a talent's application to a job, from the `applications` table. */
 export interface Application {
   id: string;
   job_id: string;
@@ -181,6 +230,12 @@ export interface Application {
   talent?: Profile;
 }
 
+/**
+ * Represents a match (invite) between a company and a talent, from the `matches` table.
+ * A company initiates a match; the talent can accept or decline.
+ * The nested `company` and `talent` shapes are intentionally minimal to avoid
+ * over-fetching — only the fields needed for the match card UI.
+ */
 export interface Match {
   id: string;
   company_id: string;
@@ -208,6 +263,7 @@ export interface Match {
   };
 }
 
+/** Represents a direct-message thread between two users, from the `conversations` table. */
 export interface Conversation {
   id: string;
   participant_a: string;
@@ -219,6 +275,7 @@ export interface Conversation {
   last_message?: Message;
 }
 
+/** Represents a single message in a conversation, from the `messages` table. */
 export interface Message {
   id: string;
   conversation_id: string;
@@ -228,6 +285,7 @@ export interface Message {
   created_at: string;
 }
 
+/** Represents an in-app notification for a user, from the `notifications` table. */
 export interface Notification {
   id: string;
   user_id: string;
@@ -239,6 +297,7 @@ export interface Notification {
   created_at: string;
 }
 
+/** Represents a team member's vote on a job application, from the `candidate_votes` table. */
 export interface CandidateVote {
   id: string;
   application_id: string;
@@ -249,6 +308,7 @@ export interface CandidateVote {
   updated_at: string;
 }
 
+/** Represents a recruiter's note attached to a job application. */
 export interface CandidateNote {
   id: string;
   application_id: string;
@@ -258,6 +318,7 @@ export interface CandidateNote {
   created_at: string;
 }
 
+/** Represents a ranked entry on the challenge leaderboard. */
 export interface LeaderboardEntry {
   id: string;
   talent_id: string;
@@ -271,19 +332,21 @@ export interface LeaderboardEntry {
   challenge?: Challenge;
 }
 
+/** Salary/rate benchmark data for a skill in a location, from the `market_rates` table. */
 export interface MarketRate {
   id: string;
   skill: string;
   location: string;
-  p25: number;
-  median: number;
-  p75: number;
+  p25: number;    // 25th percentile pay
+  median: number; // 50th percentile pay
+  p75: number;    // 75th percentile pay
   currency: string;
   trend: MarketTrend;
   delta: number;
   updated_at: string;
 }
 
+/** Tracks who viewed a talent's public profile, from the `profile_views` table. */
 export interface ProfileView {
   id: string;
   profile_id: string;
@@ -291,7 +354,10 @@ export interface ProfileView {
   viewed_at: string;
 }
 
-// Input types
+// Input types — used when writing data to the DB (create/update operations).
+// They are subsets of the full row types, omitting fields generated by the DB.
+
+/** Input shape for talent onboarding — profile fields, skills, and portfolio. */
 export interface TalentOnboardingData {
   display_name?: string;
   headline?: string;
@@ -303,6 +369,7 @@ export interface TalentOnboardingData {
   portfolio?: Array<Omit<PortfolioItem, "id" | "profile_id" | "created_at">>;
 }
 
+/** Input shape for company onboarding — profile fields and hiring process steps. */
 export interface CompanyOnboardingData {
   display_name?: string;
   headline?: string;
@@ -316,6 +383,8 @@ export interface CompanyOnboardingData {
   hiring_steps?: Array<Omit<HiringStep, "id" | "company_id">>;
 }
 
+// These `Omit` types derive input types from full row types by removing
+// server-generated fields. This keeps input and row shapes in sync automatically.
 export type JobInput = Omit<
   Job,
   "id" | "company_id" | "applicants" | "created_at" | "updated_at" | "company"
@@ -339,22 +408,26 @@ export type ApplicationInput = {
   challenge_submission_id?: string;
 };
 
+/** Phone and social handle for a user — only revealed after a confirmed match. */
 export interface ContactInfo {
   phone_number: string | null;
   social_handle: string | null;
 }
 
+/** Badge counts for unread messages and notifications — used in the nav bar. */
 export interface UnreadCounts {
   messages: number;
   notifications: number;
 }
 
+/** Combined results from the global search across three content types. */
 export interface SearchResults {
   jobs: Job[];
   challenges: Challenge[];
   talent: Profile[];
 }
 
+/** A profile bundled with its skills and portfolio items for display pages. */
 export interface FullProfile {
   profile: Profile;
   skills: Skill[];
@@ -365,6 +438,11 @@ export interface FullProfile {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Unwrap a Supabase query result, throwing on DB errors or null data.
+ * This is a convenience wrapper used throughout this file so every function
+ * doesn't need to repeat the same error-checking boilerplate.
+ */
 function throwOnError<T>(data: T | null, error: { message: string } | null): T {
   if (error) throw new Error(error.message);
   if (data === null) throw new Error("No data returned");
@@ -375,7 +453,13 @@ function throwOnError<T>(data: T | null, error: { message: string } | null): T {
 // Profile functions
 // ---------------------------------------------------------------------------
 
-/** Fetch a profile with its skills and portfolio items. */
+/**
+ * Fetch a profile with its skills and portfolio items in a single parallel batch.
+ * Used on profile pages and wherever the full picture of a user is needed.
+ *
+ * DATABASE: reads `profiles`, `skills`, and `portfolio_items` for the given userId.
+ * Returns a FullProfile object with all three arrays merged.
+ */
 export async function fetchProfile(userId: string): Promise<FullProfile> {
   const [profileRes, skillsRes, portfolioRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).single(),
@@ -395,7 +479,12 @@ export async function fetchProfile(userId: string): Promise<FullProfile> {
   return { profile, skills, portfolio };
 }
 
-/** Update mutable profile fields. */
+/**
+ * Update mutable profile fields for a user.
+ * Only the fields included in `data` are changed — all other fields remain untouched.
+ *
+ * DATABASE: updates the `profiles` table row where id = userId.
+ */
 export async function updateProfile(userId: string, data: ProfileUpdate): Promise<Profile> {
   const { data: updated, error } = await supabase
     .from("profiles")
@@ -406,7 +495,14 @@ export async function updateProfile(userId: string, data: ProfileUpdate): Promis
   return throwOnError(updated, error) as Profile;
 }
 
-/** Save talent onboarding data: profile fields + skills + portfolio items. */
+/**
+ * Save talent onboarding data: profile fields, skills list, and portfolio items.
+ * Skills are fully replaced on each save (delete + re-insert) to stay in sync
+ * with the onboarding wizard which shows a fresh list each step.
+ * Portfolio items are upserted (insert-or-update) on title conflict.
+ *
+ * DATABASE: updates `profiles`, replaces `skills`, upserts `portfolio_items`.
+ */
 export async function upsertTalentOnboarding(
   userId: string,
   data: TalentOnboardingData,
@@ -437,7 +533,13 @@ export async function upsertTalentOnboarding(
   }
 }
 
-/** Save company onboarding data: profile fields + hiring process steps. */
+/**
+ * Save company onboarding data: profile fields and hiring process steps.
+ * Hiring steps are fully replaced (delete + re-insert) each save so the order
+ * is always exactly what the user submitted in the wizard.
+ *
+ * DATABASE: updates `profiles`, replaces `company_hiring_steps`.
+ */
 export async function upsertCompanyOnboarding(
   userId: string,
   data: CompanyOnboardingData,
@@ -462,12 +564,23 @@ export async function upsertCompanyOnboarding(
   }
 }
 
-/** Fetch public talent profile (profile + skills + portfolio, no contact info). */
+/**
+ * Fetch a talent's public profile (profile + skills + portfolio, no contact info).
+ * This is safe to call for any user — sensitive contact fields are excluded
+ * by Postgres RLS policies rather than here in application code.
+ *
+ * DATABASE: reads `profiles`, `skills`, `portfolio_items` for talentId.
+ */
 export async function fetchTalentPublic(talentId: string): Promise<FullProfile> {
   return fetchProfile(talentId);
 }
 
-/** Add a single skill to the authenticated user's profile. */
+/**
+ * Add a single skill to the authenticated user's profile.
+ * Unlike onboarding, this does not clear existing skills first — it appends.
+ *
+ * DATABASE: inserts one row into the `skills` table.
+ */
 export async function addSkill(
   profileId: string,
   skill: { name: string; level: SkillLevel },
@@ -480,13 +593,21 @@ export async function addSkill(
   return throwOnError(data, error) as Skill;
 }
 
-/** Remove a skill by its row id. */
+/**
+ * Remove a skill by its row id.
+ *
+ * DATABASE: deletes from `skills` where id = skillId.
+ */
 export async function removeSkill(skillId: string): Promise<void> {
   const { error } = await supabase.from("skills").delete().eq("id", skillId);
   if (error) throw new Error(error.message);
 }
 
-/** Add a portfolio item to the authenticated user's profile. */
+/**
+ * Add a portfolio item to the authenticated user's profile.
+ *
+ * DATABASE: inserts one row into the `portfolio_items` table.
+ */
 export async function addPortfolioItem(
   profileId: string,
   item: { title: string; summary: string; type: PortfolioType; tags: string[]; year: number },
@@ -499,7 +620,12 @@ export async function addPortfolioItem(
   return throwOnError(data, error) as PortfolioItem;
 }
 
-/** Toggle the pinned state of a portfolio item. */
+/**
+ * Toggle the pinned state of a portfolio item.
+ * Pinned items appear first on the public profile.
+ *
+ * DATABASE: updates `pinned` column in `portfolio_items` where id = itemId.
+ */
 export async function pinPortfolioItem(itemId: string, pinned: boolean): Promise<void> {
   const { error } = await supabase.from("portfolio_items").update({ pinned }).eq("id", itemId);
   if (error) throw new Error(error.message);
@@ -509,6 +635,11 @@ export async function pinPortfolioItem(itemId: string, pinned: boolean): Promise
  * Get contact info for a user. Returns phone/social only if a confirmed match
  * exists between the caller and the subject — enforced by a Postgres security
  * definer function.
+ *
+ * AUTH: The Postgres `get_contact_info` RPC checks that a confirmed match exists
+ * before returning sensitive fields, so this can't be bypassed client-side.
+ *
+ * DATABASE: calls the `get_contact_info` Postgres RPC with subject_id.
  */
 export async function fetchContactInfo(subjectId: string): Promise<ContactInfo> {
   const { data, error } = await supabase.rpc("get_contact_info", { subject_id: subjectId });
@@ -524,7 +655,14 @@ export async function fetchContactInfo(subjectId: string): Promise<ContactInfo> 
 // Job functions
 // ---------------------------------------------------------------------------
 
-/** List open jobs, optionally filtered by a search query. Includes company profile. */
+/**
+ * List open jobs, optionally filtered by a search query.
+ * Includes the company's profile so job cards can show company info without
+ * a second request.
+ *
+ * VALIDATION: the query string is sanitized before use in a PostgREST .or() filter.
+ * DATABASE: reads `jobs` joined to `profiles` (company), filtered to status=open.
+ */
 export async function fetchJobs(query?: string): Promise<Job[]> {
   let q = supabase
     .from("jobs")
@@ -541,7 +679,12 @@ export async function fetchJobs(query?: string): Promise<Job[]> {
   return throwOnError(data, error) as Job[];
 }
 
-/** Fetch a single job with company profile. */
+/**
+ * Fetch a single job with its company profile.
+ * Used on the job detail page.
+ *
+ * DATABASE: reads one row from `jobs` joined to `profiles`, filtered to id = jobId.
+ */
 export async function fetchJob(jobId: string): Promise<Job> {
   const { data, error } = await supabase
     .from("jobs")
@@ -551,7 +694,12 @@ export async function fetchJob(jobId: string): Promise<Job> {
   return throwOnError(data, error) as Job;
 }
 
-/** Create a new job posting. */
+/**
+ * Create a new job posting for a company.
+ * The company_id is passed in so we never rely on client-supplied data for ownership.
+ *
+ * DATABASE: inserts one row into the `jobs` table with company_id = companyId.
+ */
 export async function createJob(companyId: string, data: JobInput): Promise<Job> {
   const { data: created, error } = await supabase
     .from("jobs")
@@ -561,7 +709,11 @@ export async function createJob(companyId: string, data: JobInput): Promise<Job>
   return throwOnError(created, error) as Job;
 }
 
-/** Update a job posting. */
+/**
+ * Update a job posting (e.g., change status, edit title/summary).
+ *
+ * DATABASE: updates columns in `jobs` where id = jobId.
+ */
 export async function updateJob(jobId: string, data: Partial<JobInput>): Promise<Job> {
   const { data: updated, error } = await supabase
     .from("jobs")
@@ -576,7 +728,12 @@ export async function updateJob(jobId: string, data: Partial<JobInput>): Promise
 // Challenge functions
 // ---------------------------------------------------------------------------
 
-/** List open challenges, optionally filtered. Includes company profile. */
+/**
+ * List open challenges, optionally filtered by a search query.
+ * Includes the company profile so challenge cards show company branding.
+ *
+ * DATABASE: reads `challenges` joined to `profiles`, filtered to status=open.
+ */
 export async function fetchChallenges(query?: string): Promise<Challenge[]> {
   let q = supabase
     .from("challenges")
@@ -593,7 +750,11 @@ export async function fetchChallenges(query?: string): Promise<Challenge[]> {
   return throwOnError(data, error) as Challenge[];
 }
 
-/** Fetch a single challenge with company profile. */
+/**
+ * Fetch a single challenge with its company profile.
+ *
+ * DATABASE: reads one row from `challenges` joined to `profiles`.
+ */
 export async function fetchChallenge(challengeId: string): Promise<Challenge> {
   const { data, error } = await supabase
     .from("challenges")
@@ -603,7 +764,11 @@ export async function fetchChallenge(challengeId: string): Promise<Challenge> {
   return throwOnError(data, error) as Challenge;
 }
 
-/** Create a new challenge. */
+/**
+ * Create a new challenge for a company.
+ *
+ * DATABASE: inserts one row into `challenges` with company_id = companyId.
+ */
 export async function createChallenge(companyId: string, data: ChallengeInput): Promise<Challenge> {
   const { data: created, error } = await supabase
     .from("challenges")
@@ -613,7 +778,11 @@ export async function createChallenge(companyId: string, data: ChallengeInput): 
   return throwOnError(created, error) as Challenge;
 }
 
-/** Update an existing challenge. */
+/**
+ * Update an existing challenge (e.g., extend deadline, change status).
+ *
+ * DATABASE: updates columns in `challenges` where id = challengeId.
+ */
 export async function updateChallenge(
   challengeId: string,
   data: Partial<ChallengeInput>,
@@ -631,7 +800,12 @@ export async function updateChallenge(
 // Submission functions
 // ---------------------------------------------------------------------------
 
-/** Fetch the authenticated talent's own submissions with challenge data. */
+/**
+ * Fetch the authenticated talent's own challenge submissions, with challenge data.
+ * Used on the talent dashboard to show submission history and statuses.
+ *
+ * DATABASE: reads `submissions` joined to `challenges`, filtered to talent_id = talentId.
+ */
 export async function fetchMySubmissions(talentId: string): Promise<Submission[]> {
   const { data, error } = await supabase
     .from("submissions")
@@ -641,7 +815,13 @@ export async function fetchMySubmissions(talentId: string): Promise<Submission[]
   return throwOnError(data, error) as Submission[];
 }
 
-/** Fetch all submissions for a challenge (company view). Includes talent profile. */
+/**
+ * Fetch all submissions for a challenge (company view).
+ * Sorted by AI match_score descending so the best submissions appear first.
+ * Includes the talent's profile for the company to see who submitted.
+ *
+ * DATABASE: reads `submissions` joined to `profiles` (talent), filtered to challenge_id.
+ */
 export async function fetchChallengeSubmissions(challengeId: string): Promise<Submission[]> {
   const { data, error } = await supabase
     .from("submissions")
@@ -651,7 +831,13 @@ export async function fetchChallengeSubmissions(challengeId: string): Promise<Su
   return throwOnError(data, error) as Submission[];
 }
 
-/** Create or update a submission (upsert on challenge_id + talent_id). */
+/**
+ * Create or update a submission (upsert on challenge_id + talent_id).
+ * Using upsert means a talent can save a draft and come back to update it
+ * without creating duplicate rows.
+ *
+ * DATABASE: upserts `submissions` on the unique (challenge_id, talent_id) pair.
+ */
 export async function upsertSubmission(data: SubmissionInput): Promise<Submission> {
   const { data: result, error } = await supabase
     .from("submissions")
@@ -665,7 +851,12 @@ export async function upsertSubmission(data: SubmissionInput): Promise<Submissio
 // Application functions
 // ---------------------------------------------------------------------------
 
-/** Fetch the authenticated talent's own applications with job + company. */
+/**
+ * Fetch the authenticated talent's own job applications, with job + company info.
+ * Used on the talent dashboard to track application statuses.
+ *
+ * DATABASE: reads `applications` joined to `jobs` and `profiles` (company), for the given talent.
+ */
 export async function fetchMyApplications(talentId: string): Promise<Application[]> {
   const { data, error } = await supabase
     .from("applications")
@@ -675,7 +866,12 @@ export async function fetchMyApplications(talentId: string): Promise<Application
   return throwOnError(data, error) as Application[];
 }
 
-/** Fetch all applications for a specific job (company view). Includes talent profile. */
+/**
+ * Fetch all applications for a specific job (company view).
+ * Sorted by AI match_score so the best candidates appear at the top.
+ *
+ * DATABASE: reads `applications` joined to `profiles` (talent), filtered to job_id.
+ */
 export async function fetchJobApplications(jobId: string): Promise<Application[]> {
   const { data, error } = await supabase
     .from("applications")
@@ -688,6 +884,13 @@ export async function fetchJobApplications(jobId: string): Promise<Application[]
 /**
  * Fetch all applications across all of a company's jobs.
  * Optionally filter by status for a Kanban-style pipeline view.
+ *
+ * This is a two-step query: first get the company's job IDs, then get all
+ * applications for those jobs. We do it in two steps because Supabase's JS
+ * client doesn't support sub-selects in a single chained call.
+ *
+ * DATABASE: reads `jobs` for the company, then `applications` joined to
+ * `profiles` (talent) and a slim `jobs` row for the job title.
  */
 export async function fetchCompanyPipeline(
   companyId: string,
@@ -715,7 +918,13 @@ export async function fetchCompanyPipeline(
   return throwOnError(data, error) as Application[];
 }
 
-/** Submit an application to a job. */
+/**
+ * Submit an application to a job.
+ * The talent_id and job_id are explicit parameters so the server can verify
+ * the caller owns the talent_id via RLS (not just trust the request body).
+ *
+ * DATABASE: inserts one row into the `applications` table.
+ */
 export async function applyToJob(data: ApplicationInput): Promise<Application> {
   const { data: created, error } = await supabase
     .from("applications")
@@ -725,7 +934,12 @@ export async function applyToJob(data: ApplicationInput): Promise<Application> {
   return throwOnError(created, error) as Application;
 }
 
-/** Move an application through the hiring pipeline. */
+/**
+ * Move an application through the hiring pipeline (e.g., from "new" to "reviewing").
+ * Called by companies as they process candidates in the pipeline view.
+ *
+ * DATABASE: updates `status` in `applications` where id = applicationId.
+ */
 export async function updateApplicationStatus(
   applicationId: string,
   status: ApplicationStatus,
@@ -743,7 +957,14 @@ export async function updateApplicationStatus(
 // Messaging functions
 // ---------------------------------------------------------------------------
 
-/** List all conversations for a user, ordered by most recent message. */
+/**
+ * List all conversations for a user, ordered by most recent message.
+ * Fetches both participant profiles so the conversation list can show names
+ * and avatars without additional requests.
+ *
+ * VALIDATION: asserts userId is a valid UUID to prevent PostgREST filter injection.
+ * DATABASE: reads `conversations` joined to `profiles` for both participants.
+ */
 export async function fetchConversations(userId: string): Promise<Conversation[]> {
   assertUUID(userId, "userId");
   const { data, error } = await supabase
@@ -760,7 +981,12 @@ export async function fetchConversations(userId: string): Promise<Conversation[]
   return throwOnError(data, error) as Conversation[];
 }
 
-/** Fetch all messages in a conversation, oldest first. */
+/**
+ * Fetch all messages in a conversation, oldest first.
+ * Ordered ascending so message bubbles render top-to-bottom chronologically.
+ *
+ * DATABASE: reads all `messages` for the given conversation_id.
+ */
 export async function fetchMessages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from("messages")
@@ -770,7 +996,11 @@ export async function fetchMessages(conversationId: string): Promise<Message[]> 
   return throwOnError(data, error) as Message[];
 }
 
-/** Send a message in a conversation. */
+/**
+ * Send a message in a conversation.
+ *
+ * DATABASE: inserts one row into the `messages` table.
+ */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
@@ -788,6 +1018,9 @@ export async function sendMessage(
  * Find an existing conversation between two participants or create one.
  * The two participants are stored in a normalised order (lower UUID first)
  * to avoid duplicates, but we query both orderings for safety.
+ *
+ * VALIDATION: both participant IDs are validated as UUIDs before use in filter strings.
+ * DATABASE: reads then optionally inserts into `conversations`.
  */
 export async function getOrCreateConversation(
   participantA: string,
@@ -818,7 +1051,11 @@ export async function getOrCreateConversation(
 // Notification functions
 // ---------------------------------------------------------------------------
 
-/** Fetch all notifications for a user, newest first. */
+/**
+ * Fetch all notifications for a user, newest first.
+ *
+ * DATABASE: reads `notifications` for user_id = userId.
+ */
 export async function fetchNotifications(userId: string): Promise<Notification[]> {
   const { data, error } = await supabase
     .from("notifications")
@@ -828,7 +1065,14 @@ export async function fetchNotifications(userId: string): Promise<Notification[]
   return throwOnError(data, error) as Notification[];
 }
 
-/** Return counts of unread messages and notifications for badge display. */
+/**
+ * Return counts of unread messages and notifications for badge display.
+ * Runs two DB queries in parallel for efficiency.
+ *
+ * VALIDATION: userId is validated as a UUID before use in filter strings.
+ * DATABASE: counts unread rows from `notifications` and `messages` tables.
+ * STATE: the result is used to drive the red badge numbers in the nav bar.
+ */
 export async function fetchUnreadCounts(userId: string): Promise<UnreadCounts> {
   assertUUID(userId, "userId");
 
@@ -860,7 +1104,12 @@ export async function fetchUnreadCounts(userId: string): Promise<UnreadCounts> {
   };
 }
 
-/** Mark all of a user's notifications as read. */
+/**
+ * Mark all of a user's unread notifications as read.
+ * Called when the user opens the notifications panel.
+ *
+ * DATABASE: bulk-updates `read_at` in `notifications` for all unread rows belonging to userId.
+ */
 export async function markNotificationsRead(userId: string): Promise<void> {
   const { error } = await supabase
     .from("notifications")
@@ -870,7 +1119,13 @@ export async function markNotificationsRead(userId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** Mark a single message as read. */
+/**
+ * Mark a single message as read.
+ * The `.is("read_at", null)` guard prevents updating already-read messages,
+ * keeping the update idempotent.
+ *
+ * DATABASE: updates `read_at` in `messages` for the given message id.
+ */
 export async function markMessageRead(messageId: string): Promise<void> {
   const { error } = await supabase
     .from("messages")
@@ -884,7 +1139,12 @@ export async function markMessageRead(messageId: string): Promise<void> {
 // Leaderboard functions
 // ---------------------------------------------------------------------------
 
-/** Fetch the full leaderboard with talent profiles and challenge info. */
+/**
+ * Fetch the full leaderboard with talent profiles and challenge info.
+ * Ordered by rank ascending so rank 1 is first.
+ *
+ * DATABASE: reads `leaderboard_entries` joined to `profiles` (talent) and `challenges`.
+ */
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase
     .from("leaderboard_entries")
@@ -893,7 +1153,11 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   return throwOnError(data, error) as LeaderboardEntry[];
 }
 
-/** Fetch all leaderboard entries for a specific talent (their challenge history). */
+/**
+ * Fetch all leaderboard entries for a specific talent (their challenge win history).
+ *
+ * DATABASE: reads `leaderboard_entries` joined to `challenges`, filtered to talent_id.
+ */
 export async function fetchTalentChallengeHistory(talentId: string): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase
     .from("leaderboard_entries")
@@ -907,7 +1171,12 @@ export async function fetchTalentChallengeHistory(talentId: string): Promise<Lea
 // Market rates
 // ---------------------------------------------------------------------------
 
-/** Fetch market rate benchmarks, optionally filtering by a list of skill names. */
+/**
+ * Fetch market rate benchmarks, optionally filtering by a list of skill names.
+ * Used on the Insights page to show salary percentile data for skills.
+ *
+ * DATABASE: reads `market_rates`, optionally filtered to a set of skill names.
+ */
 export async function fetchMarketRates(skills?: string[]): Promise<MarketRate[]> {
   let q = supabase.from("market_rates").select("*").order("skill").order("location");
 
@@ -923,7 +1192,12 @@ export async function fetchMarketRates(skills?: string[]): Promise<MarketRate[]>
 // Admin functions
 // ---------------------------------------------------------------------------
 
-/** Fetch all user profiles (admin only — relies on service role or admin JWT). */
+/**
+ * Fetch all user profiles (admin only — relies on service role or admin JWT).
+ * Row-level security on `profiles` should restrict this to admin users.
+ *
+ * DATABASE: reads all rows from `profiles`, ordered by newest first.
+ */
 export async function fetchAllUsers(): Promise<Profile[]> {
   const { data, error } = await supabase
     .from("profiles")
@@ -935,6 +1209,8 @@ export async function fetchAllUsers(): Promise<Profile[]> {
 /**
  * Fetch a moderation queue — currently returns submissions in 'submitted'
  * status that haven't been reviewed. Extend as moderation needs grow.
+ *
+ * DATABASE: reads `submissions` with status=submitted, joined to `challenges` and `profiles`.
  */
 export async function fetchModerationQueue(): Promise<Submission[]> {
   const { data, error } = await supabase
@@ -949,13 +1225,24 @@ export async function fetchModerationQueue(): Promise<Submission[]> {
  * Suspend a user by removing their role entry.
  * A suspended user's JWT will still work until it expires, but they will
  * have no role and all role-gated operations will be denied.
+ *
+ * AUTH: removing the `user_roles` row is what revokes access — RLS policies
+ * check this table to decide what a user is allowed to do.
+ *
+ * DATABASE: deletes from `user_roles` where user_id = userId.
  */
 export async function suspendUser(userId: string): Promise<void> {
   const { error } = await supabase.from("user_roles").delete().eq("user_id", userId);
   if (error) throw new Error(error.message);
 }
 
-/** Reinstate a suspended user by re-inserting their talent role. */
+/**
+ * Reinstate a suspended user by re-inserting their talent role.
+ * Uses upsert to be safe — if the row already exists (user wasn't actually suspended),
+ * this is a no-op rather than an error.
+ *
+ * DATABASE: upserts into `user_roles` with role = "talent" for the given userId.
+ */
 export async function reinstateUser(userId: string): Promise<void> {
   const { error } = await supabase
     .from("user_roles")
@@ -963,7 +1250,12 @@ export async function reinstateUser(userId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** Count how many times the authenticated user's profile was viewed in the last 30 days. */
+/**
+ * Count how many times the authenticated user's profile was viewed in the last 30 days.
+ * Used on the talent dashboard to show profile visibility stats.
+ *
+ * DATABASE: counts rows in `profile_views` for the given profile in the last 30 days.
+ */
 export async function fetchProfileViewCount(profileId: string): Promise<number> {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { count, error } = await supabase
@@ -975,7 +1267,12 @@ export async function fetchProfileViewCount(profileId: string): Promise<number> 
   return count ?? 0;
 }
 
-/** Record a profile view (called when someone visits a talent's public profile). */
+/**
+ * Record a profile view (called when someone visits a talent's public profile).
+ * viewerId is null for anonymous visitors.
+ *
+ * DATABASE: inserts one row into `profile_views`.
+ */
 export async function recordProfileView(profileId: string, viewerId?: string): Promise<void> {
   const { error } = await supabase
     .from("profile_views")
@@ -983,7 +1280,12 @@ export async function recordProfileView(profileId: string, viewerId?: string): P
   if (error) throw new Error(error.message);
 }
 
-/** Update a submission's status (admin/company moderation action). */
+/**
+ * Update a submission's status (admin/company moderation action).
+ * For example, moving from "submitted" to "reviewed" or "shortlisted".
+ *
+ * DATABASE: updates `status` in `submissions` where id = submissionId.
+ */
 export async function updateSubmissionStatus(
   submissionId: string,
   status: SubmissionStatus,
@@ -996,6 +1298,7 @@ export async function updateSubmissionStatus(
 // Contact submissions
 // ---------------------------------------------------------------------------
 
+/** Input for the public contact form on the landing page. */
 export interface ContactSubmissionInput {
   name: string;
   email: string;
@@ -1004,7 +1307,11 @@ export interface ContactSubmissionInput {
   message: string;
 }
 
-/** Persist a contact form submission. */
+/**
+ * Persist a contact form submission so the team can follow up.
+ *
+ * DATABASE: inserts one row into `contact_submissions`.
+ */
 export async function submitContact(data: ContactSubmissionInput): Promise<void> {
   const { error } = await supabase.from("contact_submissions").insert(data);
   if (error) throw new Error(error.message);
@@ -1014,7 +1321,12 @@ export async function submitContact(data: ContactSubmissionInput): Promise<void>
 // Talent shortlists (company saves talent)
 // ---------------------------------------------------------------------------
 
-/** Return all talent IDs that a company has shortlisted. */
+/**
+ * Return all talent IDs that a company has shortlisted, as a Set for O(1) lookup.
+ * Used to highlight the "saved" state on talent cards without needing a separate query.
+ *
+ * DATABASE: reads `talent_shortlists` for the given company_id.
+ */
 export async function fetchCompanyShortlists(companyId: string): Promise<Set<string>> {
   const { data, error } = await supabase
     .from("talent_shortlists")
@@ -1024,7 +1336,12 @@ export async function fetchCompanyShortlists(companyId: string): Promise<Set<str
   return new Set((data ?? []).map((r) => r.talent_id as string));
 }
 
-/** Count how many companies have shortlisted a talent profile in the last 30 days. */
+/**
+ * Count how many companies have shortlisted a talent profile in the last 30 days.
+ * Displayed on the talent's dashboard as social proof.
+ *
+ * DATABASE: counts rows in `talent_shortlists` for the given talent in the last 30 days.
+ */
 export async function fetchShortlistCount(talentId: string): Promise<number> {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { count, error } = await supabase
@@ -1036,7 +1353,12 @@ export async function fetchShortlistCount(talentId: string): Promise<number> {
   return count ?? 0;
 }
 
-/** Add a talent to a company's shortlist. */
+/**
+ * Add a talent to a company's shortlist.
+ * Uses upsert so clicking "save" a second time is safe (no duplicate rows).
+ *
+ * DATABASE: upserts into `talent_shortlists` on the (company_id, talent_id) unique pair.
+ */
 export async function addToShortlist(companyId: string, talentId: string): Promise<void> {
   const { error } = await supabase
     .from("talent_shortlists")
@@ -1044,7 +1366,11 @@ export async function addToShortlist(companyId: string, talentId: string): Promi
   if (error) throw new Error(error.message);
 }
 
-/** Remove a talent from a company's shortlist. */
+/**
+ * Remove a talent from a company's shortlist.
+ *
+ * DATABASE: deletes from `talent_shortlists` where company_id and talent_id match.
+ */
 export async function removeFromShortlist(companyId: string, talentId: string): Promise<void> {
   const { error } = await supabase
     .from("talent_shortlists")
@@ -1058,6 +1384,7 @@ export async function removeFromShortlist(companyId: string, talentId: string): 
 // Admin analytics
 // ---------------------------------------------------------------------------
 
+/** A single data point for time-series charts: a calendar day and a count. */
 export interface DayCount {
   day: string; // YYYY-MM-DD
   count: number;
@@ -1066,6 +1393,11 @@ export interface DayCount {
 /**
  * Return profile view counts for the last 7 calendar days, including days
  * with 0 views so the chart always has 7 bars.
+ *
+ * We fetch the raw rows and aggregate in JS rather than using a SQL group-by
+ * because Supabase's JS client doesn't natively support date truncation grouping.
+ *
+ * DATABASE: reads `profile_views` for the last 7 days.
  */
 export async function fetchNetworkPulse(): Promise<DayCount[]> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -1075,6 +1407,7 @@ export async function fetchNetworkPulse(): Promise<DayCount[]> {
     .gte("viewed_at", since);
   if (error) throw new Error(error.message);
 
+  // Pre-fill all 7 days with 0 so the chart has a complete x-axis
   const counts: Record<string, number> = {};
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -1088,13 +1421,20 @@ export async function fetchNetworkPulse(): Promise<DayCount[]> {
   return Object.entries(counts).map(([day, count]) => ({ day, count }));
 }
 
+/** Summary statistics about platform trust and profile quality. */
 export interface TrustStats {
   verifiedPct: number; // % talent with completeness_pct >= 60
   avgCompleteness: number; // 0-100
   disputeRate: number; // moderation queue / total submissions (%)
 }
 
-/** Compute network trust statistics for the admin dashboard. */
+/**
+ * Compute network trust statistics for the admin dashboard.
+ * Runs three queries in parallel for speed.
+ *
+ * DATABASE: reads `profiles` (talent completeness), counts from `submissions`,
+ * and counts from `submissions` with status=submitted (moderation queue).
+ */
 export async function fetchTrustStats(): Promise<TrustStats> {
   const [usersRes, submissionsRes, queueRes] = await Promise.all([
     supabase.from("profiles").select("completeness_pct").eq("account_type", "talent"),
@@ -1124,6 +1464,7 @@ export async function fetchTrustStats(): Promise<TrustStats> {
 // Contact submissions (admin read)
 // ---------------------------------------------------------------------------
 
+/** Full row from the `contact_submissions` table. */
 export interface ContactSubmission {
   id: string;
   name: string;
@@ -1134,7 +1475,11 @@ export interface ContactSubmission {
   created_at: string;
 }
 
-/** Fetch all contact form submissions, newest first (admin only). */
+/**
+ * Fetch all contact form submissions, newest first (admin only).
+ *
+ * DATABASE: reads all rows from `contact_submissions`.
+ */
 export async function fetchContactSubmissions(): Promise<ContactSubmission[]> {
   const { data, error } = await supabase
     .from("contact_submissions")
@@ -1148,7 +1493,12 @@ export async function fetchContactSubmissions(): Promise<ContactSubmission[]> {
 // Matches (company invites talent)
 // ---------------------------------------------------------------------------
 
-/** Create a pending match invite from a company to a talent. */
+/**
+ * Create a pending match invite from a company to a talent.
+ * Uses upsert so sending a second invite doesn't create a duplicate row.
+ *
+ * DATABASE: upserts into `matches` on (company_id, talent_id) with status=pending.
+ */
 export async function createMatch(companyId: string, talentId: string): Promise<void> {
   const { error } = await supabase
     .from("matches")
@@ -1159,7 +1509,12 @@ export async function createMatch(companyId: string, talentId: string): Promise<
   if (error) throw new Error(error.message);
 }
 
-/** Fetch all matches for a talent (pending invites + confirmed). */
+/**
+ * Fetch all matches for a talent (pending invites + confirmed matches).
+ * Includes a minimal company profile for the match card display.
+ *
+ * DATABASE: reads `matches` joined to `profiles` (company), filtered to talent_id.
+ */
 export async function fetchTalentMatches(talentId: string): Promise<Match[]> {
   const { data, error } = await supabase
     .from("matches")
@@ -1172,7 +1527,12 @@ export async function fetchTalentMatches(talentId: string): Promise<Match[]> {
   return (data ?? []) as Match[];
 }
 
-/** Fetch all matches initiated by a company. */
+/**
+ * Fetch all matches initiated by a company.
+ * Includes a minimal talent profile so company can see who they've invited.
+ *
+ * DATABASE: reads `matches` joined to `profiles` (talent), filtered to company_id.
+ */
 export async function fetchCompanyMatches(companyId: string): Promise<Match[]> {
   const { data, error } = await supabase
     .from("matches")
@@ -1185,7 +1545,11 @@ export async function fetchCompanyMatches(companyId: string): Promise<Match[]> {
   return (data ?? []) as Match[];
 }
 
-/** Update a match status (talent accepts/declines, or company withdraws). */
+/**
+ * Update a match status (talent accepts/declines, or company withdraws).
+ *
+ * DATABASE: updates `status` in `matches` where id = matchId.
+ */
 export async function updateMatchStatus(matchId: string, status: MatchStatus): Promise<void> {
   const { error } = await supabase.from("matches").update({ status }).eq("id", matchId);
   if (error) throw new Error(error.message);
@@ -1199,13 +1563,25 @@ export async function updateMatchStatus(matchId: string, status: MatchStatus): P
  * Permanently delete the currently authenticated user's account.
  * Calls a security-definer Postgres function that deletes the auth.users row,
  * which cascades to profiles and all child tables.
+ *
+ * AUTH: the `delete_own_account` RPC is a security-definer function — it runs
+ * with elevated privileges but verifies the calling user's identity via the JWT.
+ * The cascade delete in Postgres handles cleaning up all related data.
+ *
+ * API: calls the `delete_own_account` Postgres RPC via Supabase.
  */
 export async function deleteOwnAccount(): Promise<void> {
   const { error } = await supabase.rpc("delete_own_account");
   if (error) throw new Error(error.message);
 }
 
-/** Mark onboarding as complete in the database. */
+/**
+ * Mark onboarding as complete in the database.
+ * Sets a timestamp rather than a boolean so we can track when users finished.
+ *
+ * VALIDATION: asserts userId is a valid UUID before the DB call.
+ * DATABASE: updates `onboarding_completed_at` in `profiles`.
+ */
 export async function completeOnboarding(userId: string): Promise<void> {
   assertUUID(userId);
   const { error } = await supabase
@@ -1215,11 +1591,22 @@ export async function completeOnboarding(userId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** Check if onboarding is complete. Only the DB flag is authoritative. */
+/**
+ * Check if onboarding is complete.
+ * Only the DB flag is authoritative — don't use local storage or session state
+ * for this check, as those can be cleared or spoofed.
+ */
 export function isOnboardingComplete(profile: { onboarding_completed_at: string | null } | null): boolean {
   return !!profile?.onboarding_completed_at;
 }
 
+/**
+ * Invoke the `send-match-invite` edge function to notify a talent of a new match.
+ * Errors are logged but not re-thrown — a failed notification should not break
+ * the main match creation flow.
+ *
+ * API: calls the `send-match-invite` Supabase edge function.
+ */
 export async function notifyMatchInvite(talentId: string, companyName: string): Promise<void> {
   const { error } = await supabase.functions.invoke("send-match-invite", {
     body: { talent_id: talentId, company_name: companyName },
@@ -1227,6 +1614,12 @@ export async function notifyMatchInvite(talentId: string, companyName: string): 
   if (error) console.warn("[notifyMatchInvite]", error.message);
 }
 
+/**
+ * Invoke the `send-contact-notification` edge function to email the team about
+ * a new contact form submission. Errors are non-fatal for the same reason as above.
+ *
+ * API: calls the `send-contact-notification` Supabase edge function.
+ */
 export async function notifyContactSubmission(data: ContactSubmissionInput): Promise<void> {
   const { error } = await supabase.functions.invoke("send-contact-notification", {
     body: data,
@@ -1239,9 +1632,14 @@ export async function notifyContactSubmission(data: ContactSubmissionInput): Pro
 // ---------------------------------------------------------------------------
 
 /**
- * Full-text search across jobs, challenges, and talent profiles.
+ * Full-text search across jobs, challenges, and talent profiles simultaneously.
+ * Runs three queries in parallel and returns combined results.
+ *
  * Uses Postgres ILIKE for simplicity; upgrade to full-text search vectors
  * (`to_tsvector`) for production-scale datasets.
+ *
+ * VALIDATION: the search term is sanitized before use in filter strings.
+ * DATABASE: reads `jobs`, `challenges`, and `profiles` with ILIKE filters.
  */
 export async function searchAll(query: string): Promise<SearchResults> {
   if (!query.trim()) return { jobs: [], challenges: [], talent: [] };
