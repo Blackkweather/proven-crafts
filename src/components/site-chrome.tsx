@@ -14,13 +14,32 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          <Link to="/talent" className="transition-colors hover:text-foreground" activeProps={{ className: "text-foreground" }}>
+          <Link
+            to="/talent"
+            className="transition-colors hover:text-foreground"
+            activeProps={{ className: "text-foreground" }}
+          >
             For talent
           </Link>
-          <Link to="/companies" className="transition-colors hover:text-foreground" activeProps={{ className: "text-foreground" }}>
+          <Link
+            to="/companies"
+            className="transition-colors hover:text-foreground"
+            activeProps={{ className: "text-foreground" }}
+          >
             For companies
           </Link>
-          <Link to="/manifesto" className="transition-colors hover:text-foreground" activeProps={{ className: "text-foreground" }}>
+          <Link
+            to="/leaderboard"
+            className="transition-colors hover:text-foreground"
+            activeProps={{ className: "text-foreground" }}
+          >
+            Leaderboard
+          </Link>
+          <Link
+            to="/manifesto"
+            className="transition-colors hover:text-foreground"
+            activeProps={{ className: "text-foreground" }}
+          >
             Manifesto
           </Link>
         </nav>
@@ -86,7 +105,8 @@ export function SiteFooter() {
         <div className="md:col-span-2">
           <div className="font-display text-2xl">Skill Network</div>
           <p className="mt-3 max-w-md text-sm text-muted-foreground">
-            A hiring platform built around proven skills, not paper credentials. Made for the people who actually do the work.
+            A hiring platform built around proven skills, not paper credentials. Made for the people
+            who actually do the work.
           </p>
         </div>
         <FooterCol
@@ -95,6 +115,7 @@ export function SiteFooter() {
             { label: "For talent", to: "/talent" },
             { label: "For companies", to: "/companies" },
             { label: "Challenges", to: "/challenges" },
+            { label: "Leaderboard", to: "/leaderboard" },
             { label: "Pricing", to: "/pricing" },
           ]}
         />
@@ -129,10 +150,7 @@ function FooterCol({ title, items }: { title: string; items: FooterLink[] }) {
       <ul className="space-y-2 text-sm">
         {items.map((i) => (
           <li key={i.label}>
-            <Link
-              to={i.to}
-              className="text-foreground/80 transition-colors hover:text-foreground"
-            >
+            <Link to={i.to} className="text-foreground/80 transition-colors hover:text-foreground">
               {i.label}
             </Link>
           </li>

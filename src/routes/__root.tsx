@@ -1,7 +1,44 @@
-import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, dashboardPathFor, useAuth } from "@/lib/auth";
+import { GlobalSearch } from "@/components/global-search";
+import "@/lib/env"; // Validates required env vars at module load time
+import { initMonitoring, ErrorBoundary } from "@/lib/monitoring";
+
+initMonitoring();
+
+/**
+ * Runs once after every fresh sign-in (email/password or Google OAuth) and
+ * sends the user to onboarding or their dashboard. Single source of truth for
+ * post-auth routing so signup.tsx and login.tsx don't need their own redirects.
+ */
+function PostAuthRedirect() {
+  const { user, roles, loading, freshSignIn, consumeFreshSignIn } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading || !freshSignIn || !user) return;
+    consumeFreshSignIn();
+
+    // Check DB flag first (cross-device), fall back to localStorage
+    const onboardingDone =
+      (user as any)?.user_metadata?.onboarding_completed_at ||
+      localStorage.getItem("onboarding_complete");
+    const primaryRole = roles[0] ?? null;
+
+    if (!onboardingDone) {
+      router.navigate({
+        to: primaryRole === "company" ? "/onboarding/company" : "/onboarding/talent",
+      });
+    } else {
+      router.navigate({ to: dashboardPathFor(primaryRole) });
+    }
+  }, [loading, freshSignIn, user, roles, router, consumeFreshSignIn]);
+
+  return null;
+}
 
 function NotFoundComponent() {
   return (
@@ -39,16 +76,27 @@ export const Route = createRootRoute({
       { property: "og:title", content: "Skill Network — Hire proven skills, not resumes" },
       {
         property: "og:description",
-        content: "An editorial hiring platform built around proven skills, real work, and meaningful matches.",
+        content:
+          "An editorial hiring platform built around proven skills, real work, and meaningful matches.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Skill Network — Hire proven skills, not resumes" },
-      { name: "description", content: "Skill Forge is a premium platform connecting talent and companies through proven skills and project-based evaluations." },
-      { property: "og:description", content: "Skill Forge is a premium platform connecting talent and companies through proven skills and project-based evaluations." },
-      { name: "twitter:description", content: "Skill Forge is a premium platform connecting talent and companies through proven skills and project-based evaluations." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c73c6bbc-7707-4282-9d69-804185a1934a/id-preview-7ddf422b--655c0f96-28fe-414d-8691-0a415fda0f7a.lovable.app-1777372800715.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c73c6bbc-7707-4282-9d69-804185a1934a/id-preview-7ddf422b--655c0f96-28fe-414d-8691-0a415fda0f7a.lovable.app-1777372800715.png" },
+      {
+        name: "twitter:description",
+        content:
+          "An editorial hiring platform built around proven skills, real work, and meaningful matches.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c73c6bbc-7707-4282-9d69-804185a1934a/id-preview-7ddf422b--655c0f96-28fe-414d-8691-0a415fda0f7a.lovable.app-1777372800715.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c73c6bbc-7707-4282-9d69-804185a1934a/id-preview-7ddf422b--655c0f96-28fe-414d-8691-0a415fda0f7a.lovable.app-1777372800715.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -69,6 +117,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: "window.process=window.process||{env:{}};" }} />
         <HeadContent />
       </head>
       <body>
@@ -81,8 +130,29 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <Outlet />
-    </AuthProvider>
+    <ErrorBoundary
+      fallback={({ error }) => (
+        <div className="flex min-h-dvh items-center justify-center bg-background px-4">
+          <div className="max-w-md text-center">
+            <div className="font-display text-4xl text-destructive">Something broke</div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : "An unexpected error occurred."}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Reload page
+            </button>
+          </div>
+        </div>
+      )}
+    >
+      <AuthProvider>
+        <PostAuthRedirect />
+        <GlobalSearch />
+        <Outlet />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

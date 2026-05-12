@@ -2,13 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useAuth, dashboardPathFor, type Role } from "@/lib/auth";
 
-export function RequireRole({
-  allow,
-  children,
-}: {
-  allow: Role[];
-  children: ReactNode;
-}) {
+export function RequireRole({ allow, children }: { allow: Role[]; children: ReactNode }) {
   const { user, roles, primaryRole, loading } = useAuth();
   const router = useRouter();
 

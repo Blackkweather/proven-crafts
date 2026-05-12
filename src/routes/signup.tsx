@@ -1,6 +1,6 @@
-import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useAuth, dashboardPathFor, type AccountType } from "@/lib/auth";
+import { useAuth, type AccountType } from "@/lib/auth";
 import { AuthLayout, Field, AccountTypePicker } from "./login";
 
 export const Route = createFileRoute("/signup")({
@@ -9,7 +9,6 @@ export const Route = createFileRoute("/signup")({
 
 function Signup() {
   const { signUp, signInWithGoogle } = useAuth();
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,8 +28,7 @@ function Signup() {
       setError(res.error ?? "Sign-up failed");
       return;
     }
-    setInfo("Check your inbox to confirm your email, then sign in.");
-    setTimeout(() => router.navigate({ to: dashboardPathFor(accountType) }), 800);
+    setInfo("Account created! Setting up your profile…");
   }
 
   async function googleSignUp() {
@@ -47,7 +45,10 @@ function Signup() {
       footer={
         <>
           Already a member?{" "}
-          <Link to="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Link
+            to="/login"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
             Sign in
           </Link>
         </>
@@ -70,10 +71,14 @@ function Signup() {
 
         <form onSubmit={submit} className="space-y-5">
           {error && (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">{error}</div>
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+              {error}
+            </div>
           )}
           {info && (
-            <div className="rounded-md border border-primary/40 bg-primary/10 p-3 text-xs text-foreground">{info}</div>
+            <div className="rounded-md border border-primary/40 bg-primary/10 p-3 text-xs text-foreground">
+              {info}
+            </div>
           )}
           <AccountTypePicker value={accountType} onChange={setAccountType} />
           <Field label="Name">

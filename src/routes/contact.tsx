@@ -1,14 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { submitContact, notifyContactSubmission } from "@/lib/db";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
       { title: "Contact — Skill Network" },
-      { name: "description", content: "Talk to the Skill Network team about hiring, partnerships, or press." },
+      {
+        name: "description",
+        content: "Talk to the Skill Network team about hiring, partnerships, or press.",
+      },
       { property: "og:title", content: "Contact — Skill Network" },
-      { property: "og:description", content: "Hiring, partnerships, press. We answer within one business day." },
+      {
+        property: "og:description",
+        content: "Hiring, partnerships, press. We answer within one business day.",
+      },
     ],
   }),
   component: ContactPage,
@@ -16,11 +23,36 @@ export const Route = createFileRoute("/contact")({
 
 function ContactPage() {
   const [sent, setSent] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", company: "", topic: "Hiring", message: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    company: "",
+    topic: "Hiring",
+    message: "",
+  });
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setSent(true);
+    setError(null);
+    setLoading(true);
+    try {
+      const payload = {
+        name: form.name,
+        email: form.email,
+        company: form.company || undefined,
+        topic: form.topic,
+        message: form.message,
+      };
+      await submitContact(payload);
+      notifyContactSubmission(payload).catch(() => {});
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -29,12 +61,13 @@ function ContactPage() {
 
       <section className="container mx-auto grid gap-16 px-6 pb-24 pt-20 lg:grid-cols-12 lg:pt-28">
         <div className="lg:col-span-5">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Contact</div>
-          <h1 className="mt-4 font-display text-5xl leading-[1.05] md:text-6xl">
-            Let's talk.
-          </h1>
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Contact
+          </div>
+          <h1 className="mt-4 font-display text-5xl leading-[1.05] md:text-6xl">Let's talk.</h1>
           <p className="mt-5 max-w-md text-muted-foreground">
-            We answer every message within one business day. No bots, no funnels — a real person on our team will read it.
+            We answer every message within one business day. No bots, no funnels — a real person on
+            our team will read it.
           </p>
 
           <div className="mt-10 space-y-6">
@@ -50,17 +83,30 @@ function ContactPage() {
             {sent ? (
               <div className="py-12 text-center">
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/15 text-primary">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
                 <h2 className="mt-5 font-display text-2xl">Message received.</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  We'll be in touch at <span className="text-foreground">{form.email || "your inbox"}</span> shortly.
+                  We'll be in touch at{" "}
+                  <span className="text-foreground">{form.email || "your inbox"}</span> shortly.
                 </p>
               </div>
             ) : (
               <form onSubmit={submit} className="space-y-5">
+                {error && (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                    {error}
+                  </div>
+                )}
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Your name">
                     <input
@@ -114,9 +160,10 @@ function ContactPage() {
                 </Field>
                 <button
                   type="submit"
-                  className="w-full rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  disabled={loading}
+                  className="w-full rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  Send message
+                  {loading ? "Sending…" : "Send message"}
                 </button>
               </form>
             )}
@@ -132,7 +179,9 @@ function ContactPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -141,7 +190,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function ContactItem({ label, detail }: { label: string; detail: string }) {
   return (
     <div className="border-l-2 border-border pl-4">
-      <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 font-display text-lg">{detail}</div>
     </div>
   );

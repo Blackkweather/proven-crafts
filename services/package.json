@@ -1,0 +1,11 @@
+{
+  "name": "@skillnetwork/services",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n gateway,auth,jobs,talent,challenge,messaging -c cyan,green,blue,magenta,yellow,red \"npm run dev --prefix api-gateway\" \"npm run dev --prefix auth-service\" \"npm run dev --prefix jobs-service\" \"npm run dev --prefix talent-service\" \"npm run dev --prefix challenge-service\" \"npm run dev --prefix messaging-service\"",
+    "install:all": "npm install --prefix api-gateway && npm install --prefix auth-service && npm install --prefix jobs-service && npm install --prefix talent-service && npm install --prefix challenge-service && npm install --prefix messaging-service"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

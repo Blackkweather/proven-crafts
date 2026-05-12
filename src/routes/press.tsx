@@ -5,7 +5,10 @@ export const Route = createFileRoute("/press")({
   head: () => ({
     meta: [
       { title: "Press — Skill Network" },
-      { name: "description", content: "Press kit, founder quotes, and recent coverage of Skill Network." },
+      {
+        name: "description",
+        content: "Press kit, founder quotes, and recent coverage of Skill Network.",
+      },
       { property: "og:title", content: "Press — Skill Network" },
       { property: "og:description", content: "Founder quotes, brand assets, and coverage." },
     ],
@@ -15,8 +18,16 @@ export const Route = createFileRoute("/press")({
 
 const coverage = [
   { outlet: "Sifted", title: "Skill Network bets that resumes are over", date: "Mar 2026" },
-  { outlet: "TechCrunch EU", title: "Berlin's Skill Network raises €6M to rebuild hiring around proof of work", date: "Feb 2026" },
-  { outlet: "The Generalist", title: "Why the next great hiring company won't look like LinkedIn", date: "Jan 2026" },
+  {
+    outlet: "TechCrunch EU",
+    title: "Berlin's Skill Network raises €6M to rebuild hiring around proof of work",
+    date: "Feb 2026",
+  },
+  {
+    outlet: "The Generalist",
+    title: "Why the next great hiring company won't look like LinkedIn",
+    date: "Jan 2026",
+  },
   { outlet: "Lenny's Newsletter", title: "Skill-first hiring: a field guide", date: "Nov 2025" },
 ];
 
@@ -26,7 +37,9 @@ function PressPage() {
       <SiteHeader />
 
       <section className="container mx-auto px-6 pb-16 pt-20 lg:pt-28">
-        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Press</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          Press
+        </div>
         <h1 className="mt-4 font-display text-5xl leading-[1.05] md:text-6xl">
           A different shape for hiring,
           <br />
@@ -67,11 +80,16 @@ function PressPage() {
           {coverage.map((c, i) => (
             <a
               key={c.title}
-              href="#"
-              className={"flex items-center justify-between gap-6 px-6 py-5 transition-colors hover:bg-accent " + (i ? "border-t border-border" : "")}
+              href="/contact"
+              className={
+                "flex items-center justify-between gap-6 px-6 py-5 transition-colors hover:bg-accent " +
+                (i ? "border-t border-border" : "")
+              }
             >
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{c.outlet}</div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  {c.outlet}
+                </div>
                 <div className="mt-1 font-display text-lg">{c.title}</div>
               </div>
               <span className="font-mono text-xs text-muted-foreground">{c.date}</span>
@@ -89,7 +107,9 @@ function Quote({ q, by }: { q: string; by: string }) {
   return (
     <blockquote className="surface-paper rounded-2xl p-6">
       <p className="font-display text-xl leading-snug">"{q}"</p>
-      <footer className="mt-4 text-xs uppercase tracking-widest text-muted-foreground">— {by}</footer>
+      <footer className="mt-4 text-xs uppercase tracking-widest text-muted-foreground">
+        — {by}
+      </footer>
     </blockquote>
   );
 }

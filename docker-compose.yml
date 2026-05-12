@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  # ── Frontend ──────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8080:8080"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - api-gateway
+
+  # ── API Gateway ───────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./services/api-gateway/.env
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - JOBS_SERVICE_URL=http://jobs-service:3002
+      - TALENT_SERVICE_URL=http://talent-service:3003
+      - CHALLENGE_SERVICE_URL=http://challenge-service:3004
+      - MESSAGING_SERVICE_URL=http://messaging-service:3005
+    depends_on:
+      - auth-service
+      - jobs-service
+      - talent-service
+      - challenge-service
+      - messaging-service
+    restart: unless-stopped
+
+  # ── Auth Service ──────────────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./services/auth-service
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./services/auth-service/.env
+    restart: unless-stopped
+
+  # ── Jobs Service ──────────────────────────────────────────────────────────
+  jobs-service:
+    build:
+      context: ./services/jobs-service
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./services/jobs-service/.env
+    restart: unless-stopped
+
+  # ── Talent Service ────────────────────────────────────────────────────────
+  talent-service:
+    build:
+      context: ./services/talent-service
+    ports:
+      - "3003:3003"
+    env_file:
+      - ./services/talent-service/.env
+    restart: unless-stopped
+
+  # ── Challenge Service ─────────────────────────────────────────────────────
+  challenge-service:
+    build:
+      context: ./services/challenge-service
+    ports:
+      - "3004:3004"
+    env_file:
+      - ./services/challenge-service/.env
+    restart: unless-stopped
+
+  # ── Messaging Service ─────────────────────────────────────────────────────
+  messaging-service:
+    build:
+      context: ./services/messaging-service
+    ports:
+      - "3005:3005"
+    env_file:
+      - ./services/messaging-service/.env
+    restart: unless-stopped

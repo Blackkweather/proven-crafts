@@ -11,10 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TalentRouteImport } from './routes/talent'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PressRouteImport } from './routes/press'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CompanyRouteImport } from './routes/company'
 import { Route as CompaniesRouteImport } from './routes/companies'
@@ -27,19 +31,28 @@ import { Route as CompanyIndexRouteImport } from './routes/company.index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TalentTalentIdRouteImport } from './routes/talent.$talentId'
+import { Route as OnboardingTalentRouteImport } from './routes/onboarding.talent'
+import { Route as OnboardingCompanyRouteImport } from './routes/onboarding.company'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
+import { Route as CompanyTalentRouteImport } from './routes/company.talent'
 import { Route as CompanyJobsRouteImport } from './routes/company.jobs'
 import { Route as CompanyInboxRouteImport } from './routes/company.inbox'
 import { Route as CompanyChallengesRouteImport } from './routes/company.challenges'
 import { Route as CompanyCandidatesRouteImport } from './routes/company.candidates'
+import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as ChallengesChallengeIdRouteImport } from './routes/challenges.$challengeId'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
+import { Route as AppMatchesRouteImport } from './routes/app.matches'
 import { Route as AppJobsRouteImport } from './routes/app.jobs'
+import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppInboxRouteImport } from './routes/app.inbox'
 import { Route as AppChallengesRouteImport } from './routes/app.challenges'
+import { Route as AppApplicationsRouteImport } from './routes/app.applications'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminModerationRouteImport } from './routes/admin.moderation'
+import { Route as AdminContactRouteImport } from './routes/admin.contact'
 import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
 
 const TalentRoute = TalentRouteImport.update({
@@ -52,6 +65,11 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -62,6 +80,11 @@ const PressRoute = PressRouteImport.update({
   path: '/press',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManifestoRoute = ManifestoRouteImport.update({
   id: '/manifesto',
   path: '/manifesto',
@@ -70,6 +93,16 @@ const ManifestoRoute = ManifestoRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -132,10 +165,25 @@ const TalentTalentIdRoute = TalentTalentIdRouteImport.update({
   path: '/$talentId',
   getParentRoute: () => TalentRoute,
 } as any)
+const OnboardingTalentRoute = OnboardingTalentRouteImport.update({
+  id: '/talent',
+  path: '/talent',
+  getParentRoute: () => OnboardingRoute,
+} as any)
+const OnboardingCompanyRoute = OnboardingCompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => OnboardingRoute,
+} as any)
 const JobsJobIdRoute = JobsJobIdRouteImport.update({
   id: '/jobs/$jobId',
   path: '/jobs/$jobId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyTalentRoute = CompanyTalentRouteImport.update({
+  id: '/talent',
+  path: '/talent',
+  getParentRoute: () => CompanyRoute,
 } as any)
 const CompanyJobsRoute = CompanyJobsRouteImport.update({
   id: '/jobs',
@@ -157,10 +205,20 @@ const CompanyCandidatesRoute = CompanyCandidatesRouteImport.update({
   path: '/candidates',
   getParentRoute: () => CompanyRoute,
 } as any)
+const CompaniesCompanyIdRoute = CompaniesCompanyIdRouteImport.update({
+  id: '/$companyId',
+  path: '/$companyId',
+  getParentRoute: () => CompaniesRoute,
+} as any)
 const ChallengesChallengeIdRoute = ChallengesChallengeIdRouteImport.update({
   id: '/$challengeId',
   path: '/$challengeId',
   getParentRoute: () => ChallengesRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
@@ -172,9 +230,19 @@ const AppNotificationsRoute = AppNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMatchesRoute = AppMatchesRouteImport.update({
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppJobsRoute = AppJobsRouteImport.update({
   id: '/jobs',
   path: '/jobs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInsightsRoute = AppInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInboxRoute = AppInboxRouteImport.update({
@@ -187,6 +255,11 @@ const AppChallengesRoute = AppChallengesRouteImport.update({
   path: '/challenges',
   getParentRoute: () => AppRoute,
 } as any)
+const AppApplicationsRoute = AppApplicationsRouteImport.update({
+  id: '/applications',
+  path: '/applications',
+  getParentRoute: () => AppRoute,
+} as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -195,6 +268,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
 const AdminModerationRoute = AdminModerationRouteImport.update({
   id: '/moderation',
   path: '/moderation',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContactRoute = AdminContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCompaniesRoute = AdminCompaniesRouteImport.update({
@@ -209,29 +287,42 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/careers': typeof CareersRoute
   '/challenges': typeof ChallengesRouteWithChildren
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/company': typeof CompanyRouteWithChildren
   '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/press': typeof PressRoute
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/contact': typeof AdminContactRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/users': typeof AdminUsersRoute
+  '/app/applications': typeof AppApplicationsRoute
   '/app/challenges': typeof AppChallengesRoute
   '/app/inbox': typeof AppInboxRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/jobs': typeof AppJobsRoute
+  '/app/matches': typeof AppMatchesRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/settings': typeof AppSettingsRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/talent': typeof CompanyTalentRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/onboarding/company': typeof OnboardingCompanyRoute
+  '/onboarding/talent': typeof OnboardingTalentRoute
   '/talent/$talentId': typeof TalentTalentIdRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
@@ -241,28 +332,41 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/careers': typeof CareersRoute
   '/challenges': typeof ChallengesRouteWithChildren
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/press': typeof PressRoute
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/contact': typeof AdminContactRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/users': typeof AdminUsersRoute
+  '/app/applications': typeof AppApplicationsRoute
   '/app/challenges': typeof AppChallengesRoute
   '/app/inbox': typeof AppInboxRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/jobs': typeof AppJobsRoute
+  '/app/matches': typeof AppMatchesRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/settings': typeof AppSettingsRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/talent': typeof CompanyTalentRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/onboarding/company': typeof OnboardingCompanyRoute
+  '/onboarding/talent': typeof OnboardingTalentRoute
   '/talent/$talentId': typeof TalentTalentIdRoute
   '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
@@ -275,29 +379,42 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/careers': typeof CareersRoute
   '/challenges': typeof ChallengesRouteWithChildren
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/company': typeof CompanyRouteWithChildren
   '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
   '/manifesto': typeof ManifestoRoute
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/press': typeof PressRoute
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/contact': typeof AdminContactRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/users': typeof AdminUsersRoute
+  '/app/applications': typeof AppApplicationsRoute
   '/app/challenges': typeof AppChallengesRoute
   '/app/inbox': typeof AppInboxRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/jobs': typeof AppJobsRoute
+  '/app/matches': typeof AppMatchesRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/settings': typeof AppSettingsRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/talent': typeof CompanyTalentRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/onboarding/company': typeof OnboardingCompanyRoute
+  '/onboarding/talent': typeof OnboardingTalentRoute
   '/talent/$talentId': typeof TalentTalentIdRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
@@ -314,26 +431,39 @@ export interface FileRouteTypes {
     | '/companies'
     | '/company'
     | '/contact'
+    | '/forgot-password'
+    | '/leaderboard'
     | '/login'
     | '/manifesto'
+    | '/onboarding'
     | '/press'
     | '/pricing'
+    | '/reset-password'
     | '/signup'
     | '/talent'
     | '/admin/companies'
+    | '/admin/contact'
     | '/admin/moderation'
     | '/admin/users'
+    | '/app/applications'
     | '/app/challenges'
     | '/app/inbox'
+    | '/app/insights'
     | '/app/jobs'
+    | '/app/matches'
     | '/app/notifications'
     | '/app/profile'
+    | '/app/settings'
     | '/challenges/$challengeId'
+    | '/companies/$companyId'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/talent'
     | '/jobs/$jobId'
+    | '/onboarding/company'
+    | '/onboarding/talent'
     | '/talent/$talentId'
     | '/admin/'
     | '/app/'
@@ -345,26 +475,39 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/companies'
     | '/contact'
+    | '/forgot-password'
+    | '/leaderboard'
     | '/login'
     | '/manifesto'
+    | '/onboarding'
     | '/press'
     | '/pricing'
+    | '/reset-password'
     | '/signup'
     | '/talent'
     | '/admin/companies'
+    | '/admin/contact'
     | '/admin/moderation'
     | '/admin/users'
+    | '/app/applications'
     | '/app/challenges'
     | '/app/inbox'
+    | '/app/insights'
     | '/app/jobs'
+    | '/app/matches'
     | '/app/notifications'
     | '/app/profile'
+    | '/app/settings'
     | '/challenges/$challengeId'
+    | '/companies/$companyId'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/talent'
     | '/jobs/$jobId'
+    | '/onboarding/company'
+    | '/onboarding/talent'
     | '/talent/$talentId'
     | '/admin'
     | '/app'
@@ -379,26 +522,39 @@ export interface FileRouteTypes {
     | '/companies'
     | '/company'
     | '/contact'
+    | '/forgot-password'
+    | '/leaderboard'
     | '/login'
     | '/manifesto'
+    | '/onboarding'
     | '/press'
     | '/pricing'
+    | '/reset-password'
     | '/signup'
     | '/talent'
     | '/admin/companies'
+    | '/admin/contact'
     | '/admin/moderation'
     | '/admin/users'
+    | '/app/applications'
     | '/app/challenges'
     | '/app/inbox'
+    | '/app/insights'
     | '/app/jobs'
+    | '/app/matches'
     | '/app/notifications'
     | '/app/profile'
+    | '/app/settings'
     | '/challenges/$challengeId'
+    | '/companies/$companyId'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/talent'
     | '/jobs/$jobId'
+    | '/onboarding/company'
+    | '/onboarding/talent'
     | '/talent/$talentId'
     | '/admin/'
     | '/app/'
@@ -411,13 +567,17 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   CareersRoute: typeof CareersRoute
   ChallengesRoute: typeof ChallengesRouteWithChildren
-  CompaniesRoute: typeof CompaniesRoute
+  CompaniesRoute: typeof CompaniesRouteWithChildren
   CompanyRoute: typeof CompanyRouteWithChildren
   ContactRoute: typeof ContactRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LeaderboardRoute: typeof LeaderboardRoute
   LoginRoute: typeof LoginRoute
   ManifestoRoute: typeof ManifestoRoute
+  OnboardingRoute: typeof OnboardingRouteWithChildren
   PressRoute: typeof PressRoute
   PricingRoute: typeof PricingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   TalentRoute: typeof TalentRouteWithChildren
   JobsJobIdRoute: typeof JobsJobIdRoute
@@ -439,6 +599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -453,6 +620,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/manifesto': {
       id: '/manifesto'
       path: '/manifesto'
@@ -465,6 +639,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -551,12 +739,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TalentTalentIdRouteImport
       parentRoute: typeof TalentRoute
     }
+    '/onboarding/talent': {
+      id: '/onboarding/talent'
+      path: '/talent'
+      fullPath: '/onboarding/talent'
+      preLoaderRoute: typeof OnboardingTalentRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
+    '/onboarding/company': {
+      id: '/onboarding/company'
+      path: '/company'
+      fullPath: '/onboarding/company'
+      preLoaderRoute: typeof OnboardingCompanyRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
     '/jobs/$jobId': {
       id: '/jobs/$jobId'
       path: '/jobs/$jobId'
       fullPath: '/jobs/$jobId'
       preLoaderRoute: typeof JobsJobIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/company/talent': {
+      id: '/company/talent'
+      path: '/talent'
+      fullPath: '/company/talent'
+      preLoaderRoute: typeof CompanyTalentRouteImport
+      parentRoute: typeof CompanyRoute
     }
     '/company/jobs': {
       id: '/company/jobs'
@@ -586,12 +795,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanyCandidatesRouteImport
       parentRoute: typeof CompanyRoute
     }
+    '/companies/$companyId': {
+      id: '/companies/$companyId'
+      path: '/$companyId'
+      fullPath: '/companies/$companyId'
+      preLoaderRoute: typeof CompaniesCompanyIdRouteImport
+      parentRoute: typeof CompaniesRoute
+    }
     '/challenges/$challengeId': {
       id: '/challenges/$challengeId'
       path: '/$challengeId'
       fullPath: '/challenges/$challengeId'
       preLoaderRoute: typeof ChallengesChallengeIdRouteImport
       parentRoute: typeof ChallengesRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/profile': {
       id: '/app/profile'
@@ -607,11 +830,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNotificationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/matches': {
+      id: '/app/matches'
+      path: '/matches'
+      fullPath: '/app/matches'
+      preLoaderRoute: typeof AppMatchesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/jobs': {
       id: '/app/jobs'
       path: '/jobs'
       fullPath: '/app/jobs'
       preLoaderRoute: typeof AppJobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/insights': {
+      id: '/app/insights'
+      path: '/insights'
+      fullPath: '/app/insights'
+      preLoaderRoute: typeof AppInsightsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/inbox': {
@@ -628,6 +865,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChallengesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/applications': {
+      id: '/app/applications'
+      path: '/applications'
+      fullPath: '/app/applications'
+      preLoaderRoute: typeof AppApplicationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/admin/users': {
       id: '/admin/users'
       path: '/users'
@@ -642,6 +886,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminModerationRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/contact': {
+      id: '/admin/contact'
+      path: '/contact'
+      fullPath: '/admin/contact'
+      preLoaderRoute: typeof AdminContactRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/companies': {
       id: '/admin/companies'
       path: '/companies'
@@ -654,6 +905,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCompaniesRoute: typeof AdminCompaniesRoute
+  AdminContactRoute: typeof AdminContactRoute
   AdminModerationRoute: typeof AdminModerationRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -661,6 +913,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCompaniesRoute: AdminCompaniesRoute,
+  AdminContactRoute: AdminContactRoute,
   AdminModerationRoute: AdminModerationRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -669,20 +922,28 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface AppRouteChildren {
+  AppApplicationsRoute: typeof AppApplicationsRoute
   AppChallengesRoute: typeof AppChallengesRoute
   AppInboxRoute: typeof AppInboxRoute
+  AppInsightsRoute: typeof AppInsightsRoute
   AppJobsRoute: typeof AppJobsRoute
+  AppMatchesRoute: typeof AppMatchesRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppApplicationsRoute: AppApplicationsRoute,
   AppChallengesRoute: AppChallengesRoute,
   AppInboxRoute: AppInboxRoute,
+  AppInsightsRoute: AppInsightsRoute,
   AppJobsRoute: AppJobsRoute,
+  AppMatchesRoute: AppMatchesRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppProfileRoute: AppProfileRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
@@ -700,11 +961,24 @@ const ChallengesRouteWithChildren = ChallengesRoute._addFileChildren(
   ChallengesRouteChildren,
 )
 
+interface CompaniesRouteChildren {
+  CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
+}
+
+const CompaniesRouteChildren: CompaniesRouteChildren = {
+  CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,
+}
+
+const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
+  CompaniesRouteChildren,
+)
+
 interface CompanyRouteChildren {
   CompanyCandidatesRoute: typeof CompanyCandidatesRoute
   CompanyChallengesRoute: typeof CompanyChallengesRoute
   CompanyInboxRoute: typeof CompanyInboxRoute
   CompanyJobsRoute: typeof CompanyJobsRoute
+  CompanyTalentRoute: typeof CompanyTalentRoute
   CompanyIndexRoute: typeof CompanyIndexRoute
 }
 
@@ -713,11 +987,26 @@ const CompanyRouteChildren: CompanyRouteChildren = {
   CompanyChallengesRoute: CompanyChallengesRoute,
   CompanyInboxRoute: CompanyInboxRoute,
   CompanyJobsRoute: CompanyJobsRoute,
+  CompanyTalentRoute: CompanyTalentRoute,
   CompanyIndexRoute: CompanyIndexRoute,
 }
 
 const CompanyRouteWithChildren =
   CompanyRoute._addFileChildren(CompanyRouteChildren)
+
+interface OnboardingRouteChildren {
+  OnboardingCompanyRoute: typeof OnboardingCompanyRoute
+  OnboardingTalentRoute: typeof OnboardingTalentRoute
+}
+
+const OnboardingRouteChildren: OnboardingRouteChildren = {
+  OnboardingCompanyRoute: OnboardingCompanyRoute,
+  OnboardingTalentRoute: OnboardingTalentRoute,
+}
+
+const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(
+  OnboardingRouteChildren,
+)
 
 interface TalentRouteChildren {
   TalentTalentIdRoute: typeof TalentTalentIdRoute
@@ -736,13 +1025,17 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   CareersRoute: CareersRoute,
   ChallengesRoute: ChallengesRouteWithChildren,
-  CompaniesRoute: CompaniesRoute,
+  CompaniesRoute: CompaniesRouteWithChildren,
   CompanyRoute: CompanyRouteWithChildren,
   ContactRoute: ContactRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LeaderboardRoute: LeaderboardRoute,
   LoginRoute: LoginRoute,
   ManifestoRoute: ManifestoRoute,
+  OnboardingRoute: OnboardingRouteWithChildren,
   PressRoute: PressRoute,
   PricingRoute: PricingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   TalentRoute: TalentRouteWithChildren,
   JobsJobIdRoute: JobsJobIdRoute,
@@ -750,3 +1043,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

@@ -18,6 +18,7 @@ function AdminLayout() {
           { to: "/admin/users", label: "People", icon: Icons.users },
           { to: "/admin/companies", label: "Companies", icon: Icons.building },
           { to: "/admin/moderation", label: "Moderation", icon: Icons.shield },
+          { to: "/admin/contact", label: "Inbox", icon: Icons.inbox },
         ]}
       >
         <Outlet />

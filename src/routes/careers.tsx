@@ -5,25 +5,64 @@ export const Route = createFileRoute("/careers")({
   head: () => ({
     meta: [
       { title: "Careers — Skill Network" },
-      { name: "description", content: "Join the team building a hiring platform around proven skills." },
+      {
+        name: "description",
+        content: "Join the team building a hiring platform around proven skills.",
+      },
       { property: "og:title", content: "Careers — Skill Network" },
-      { property: "og:description", content: "We're a small studio building a different shape for hiring. Come build with us." },
+      {
+        property: "og:description",
+        content: "We're a small studio building a different shape for hiring. Come build with us.",
+      },
     ],
   }),
   component: CareersPage,
 });
 
 const openings = [
-  { id: "eng-staff", title: "Staff Product Engineer", team: "Engineering", location: "Berlin / Remote (EU)", type: "Full-time" },
-  { id: "design-lead", title: "Design Lead, Talent Experience", team: "Design", location: "Berlin / Lisbon", type: "Full-time" },
-  { id: "talent-partner", title: "Talent Partner", team: "Network", location: "Remote (EU)", type: "Full-time" },
-  { id: "editorial", title: "Editorial Producer", team: "Brand", location: "Remote", type: "Contract" },
+  {
+    id: "eng-staff",
+    title: "Staff Product Engineer",
+    team: "Engineering",
+    location: "Berlin / Remote (EU)",
+    type: "Full-time",
+  },
+  {
+    id: "design-lead",
+    title: "Design Lead, Talent Experience",
+    team: "Design",
+    location: "Berlin / Lisbon",
+    type: "Full-time",
+  },
+  {
+    id: "talent-partner",
+    title: "Talent Partner",
+    team: "Network",
+    location: "Remote (EU)",
+    type: "Full-time",
+  },
+  {
+    id: "editorial",
+    title: "Editorial Producer",
+    team: "Brand",
+    location: "Remote",
+    type: "Contract",
+  },
 ];
 
 const principles = [
-  { t: "Show, don't tell", b: "Every person we hire shipped something concrete to get here. We do the same internally." },
-  { t: "Calm focus", b: "No notification floods, no perma-meetings. Long stretches of deep work, defended." },
-  { t: "Editorial taste", b: "We treat product like a publication. Clear voice, considered surfaces, pride in the craft." },
+  {
+    t: "Show, don't tell",
+    b: "Every person we hire shipped something concrete to get here. We do the same internally.",
+  },
+  {
+    t: "Calm focus",
+    b: "No notification floods, no perma-meetings. Long stretches of deep work, defended.",
+  },
+  {
+    t: "Editorial taste",
+    b: "We treat product like a publication. Clear voice, considered surfaces, pride in the craft.",
+  },
 ];
 
 function CareersPage() {
@@ -34,17 +73,22 @@ function CareersPage() {
       <section className="container mx-auto px-6 pb-16 pt-20 lg:pt-28">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-7">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Careers</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Careers
+            </div>
             <h1 className="mt-4 font-display text-5xl leading-[1.05] md:text-6xl">
               Build the network you'd want to be hired through.
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              We're a 14-person studio designing a hiring platform that respects both sides of the table. We hire the way we ask companies to: by reviewing real work.
+              We're a 14-person studio designing a hiring platform that respects both sides of the
+              table. We hire the way we ask companies to: by reviewing real work.
             </p>
           </div>
           <div className="lg:col-span-5">
             <div className="surface-paper rounded-2xl p-6">
-              <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">How we hire</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                How we hire
+              </div>
               <ol className="mt-4 space-y-4 text-sm">
                 <Li n="01" t="Conversation" b="A 30-minute call with the hiring lead, no script." />
                 <Li n="02" t="Paid trial" b="A short, scoped piece of real work — €600 flat." />
@@ -64,7 +108,10 @@ function CareersPage() {
               <Link
                 key={o.id}
                 to="/contact"
-                className={"group flex items-center justify-between gap-6 px-6 py-5 transition-colors hover:bg-accent " + (i ? "border-t border-border" : "")}
+                className={
+                  "group flex items-center justify-between gap-6 px-6 py-5 transition-colors hover:bg-accent " +
+                  (i ? "border-t border-border" : "")
+                }
               >
                 <div className="min-w-0">
                   <div className="font-display text-lg">{o.title}</div>

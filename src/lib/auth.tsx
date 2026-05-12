@@ -1,8 +1,9 @@
 // Real auth backed by Lovable Cloud (Supabase).
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { setUserContext } from "@/lib/monitoring";
 
 export type Role = "talent" | "company" | "admin";
 export type AccountType = "talent" | "company";
@@ -14,6 +15,7 @@ export interface ProfileRow {
   bio: string;
   avatar_url: string | null;
   account_type: AccountType;
+  onboarding_completed_at: string | null;
 }
 
 interface AuthCtx {
@@ -23,6 +25,9 @@ interface AuthCtx {
   roles: Role[];
   primaryRole: Role | null;
   loading: boolean;
+  /** Set when a fresh SIGNED_IN event fires (not initial session restore). Use to trigger post-auth navigation. */
+  freshSignIn: boolean;
+  consumeFreshSignIn: () => void;
   signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   signUp: (
     name: string,
@@ -54,10 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const [freshSignIn, setFreshSignIn] = useState(false);
+  // Tracks whether the initial session check has completed so we can
+  // distinguish a genuine new sign-in from the INITIAL_SESSION event.
+  const initialLoadDone = useRef(false);
 
   const hydrate = async (s: Session | null) => {
     setSession(s);
     setUser(s?.user ?? null);
+    setUserContext(s?.user?.id ?? null);
     if (!s?.user) {
       setProfile(null);
       setRoles([]);
@@ -75,15 +85,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Set up listener BEFORE checking initial session.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, s) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
+        const isFresh = initialLoadDone.current && event === "SIGNED_IN";
         // Defer Supabase calls to avoid deadlocks inside the callback.
         setTimeout(() => {
           loadProfileAndRoles(s.user.id).then(({ profile, roles }) => {
             setProfile(profile);
             setRoles(roles);
+            // Set freshSignIn AFTER roles are loaded so PostAuthRedirect can
+            // make the correct role-based routing decision immediately.
+            if (isFresh) setFreshSignIn(true);
           });
         }, 0);
       } else {
@@ -93,7 +107,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     supabase.auth.getSession().then(({ data }) => {
-      hydrate(data.session).finally(() => setLoading(false));
+      hydrate(data.session).finally(() => {
+        setLoading(false);
+        initialLoadDone.current = true;
+        // Returning from Google OAuth lands on the homepage with an existing
+        // session — treat it as a fresh sign-in so PostAuthRedirect fires.
+        if (data.session?.user) {
+          setFreshSignIn(true);
+        }
+      });
     });
 
     return () => sub.subscription.unsubscribe();
@@ -107,6 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     roles,
     primaryRole: roles[0] ?? null,
     loading,
+    freshSignIn,
+    consumeFreshSignIn: () => setFreshSignIn(false),
     signIn: async (email, password) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { ok: false, error: error.message };
@@ -126,9 +150,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     },
     signInWithGoogle: async () => {
-      const redirect_uri = typeof window !== "undefined" ? window.location.origin : undefined;
-      const res = await lovable.auth.signInWithOAuth("google", { redirect_uri });
-      if (res.error) return { ok: false, error: res.error.message };
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+      if (error) return { ok: false, error: error.message };
       return { ok: true };
     },
     signOut: async () => {
