@@ -1,7 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tanstack-start-app",
+  "name": "proven-crafts",
+  "account_id": "34787e98d3e8aac29056aa8ce3b9f1de",
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  "vars": {
+    "VITE_SUPABASE_URL": "https://jzcwlsduslwxmgbbhxgh.supabase.co",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6Y3dsc2R1c2x3eG1nYmJoeGdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDI1NjcsImV4cCI6MjA5MzkxODU2N30.8TqCq2ayeDJmXQtUv0_CNCESRZ9aFrrvq90ZaKiVniY"
+  }
 }

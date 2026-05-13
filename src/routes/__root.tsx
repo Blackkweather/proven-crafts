@@ -21,7 +21,6 @@
 // =============================================================================
 
 import { Outlet, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
-import { setHeaders } from "@tanstack/react-start/server";
 import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
@@ -119,26 +118,6 @@ function NotFoundComponent() {
 // shellComponent wraps the HTML/body; component renders inside <body>.
 // =============================================================================
 export const Route = createRootRoute({
-  beforeLoad: () => {
-    setHeaders({
-      "X-Frame-Options": "DENY",
-      "X-Content-Type-Options": "nosniff",
-      "Referrer-Policy": "strict-origin-when-cross-origin",
-      "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-      "Content-Security-Policy": [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
-        "img-src 'self' data: blob: https:",
-        "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-        "media-src 'self' blob: https:",
-        "frame-ancestors 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-      ].join("; "),
-    });
-  },
   // SEO: Meta tags, OG tags, Twitter cards, and font preloads
   head: () => ({
     meta: [
