@@ -1,5 +1,35 @@
+// =============================================================================
+// TALENT ONBOARDING WIZARD — src/routes/onboarding.talent.tsx
+// =============================================================================
+// 4-step onboarding wizard for new talent accounts. Runs immediately after
+// signup (before the user can access /app). Collects the minimum information
+// needed to build a useful profile and show relevant job matches.
+//
+// Step 1 — Role: Pick a primary role (e.g. "Frontend Dev") and seniority level
+// Step 2 — Skills: Browse by category, select skills, rate each with proficiency
+// Step 3 — Preferences: Work type, arrangement, location, salary range, availability
+// Step 4 — Portfolio: Optional links — GitHub, LinkedIn, website, other
+//
+// On completion: saves data to Supabase via `upsertTalentOnboarding`, marks
+// onboarding complete via `completeOnboarding`, refreshes the auth token, and
+// navigates to /app.
+//
+// IMPORTANT: Uses `supabase.auth.getUser()` directly (not the auth context
+// profile) to avoid a race condition where the profile hasn't loaded yet
+// immediately after email/password signup.
+//
+// DATA FLOW:
+//   - `upsertTalentOnboarding(userId, data)` — writes headline, location,
+//     availability, and skills to the profiles/talent_skills tables
+//   - `completeOnboarding(userId)` — flips the onboarding_complete flag
+//   - `auth.refresh()` — re-fetches the session so the auth context sees
+//     the updated profile before navigation to /app
+// KEYWORDS: AUTH, DATABASE, STATE, VALIDATION, NAVIGATION
+// =============================================================================
+
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useState } from "react";
+// Direct Supabase client — needed to call getUser() and avoid auth context race condition.
 import { supabase } from "@/integrations/supabase/client";
 import { upsertTalentOnboarding, completeOnboarding } from "@/lib/db";
 import {
@@ -33,12 +63,14 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
+// NAVIGATION: Route definition for "/onboarding/talent".
 export const Route = createFileRoute("/onboarding/talent")({
   component: TalentOnboarding,
 });
 
 // ─── Step metadata ────────────────────────────────────────────────────────────
-
+// Each step has an icon, a sidebar label, a content heading, and a motivational
+// insight shown in the left panel. These drive the sidebar step list and headings.
 const STEP_META = [
   {
     Icon: Briefcase,
@@ -66,6 +98,7 @@ const STEP_META = [
   },
 ];
 
+// Static platform stats shown in the left sidebar to build confidence.
 const PLATFORM_STATS = [
   "4,200+ companies hiring",
   "18,000+ verified skills",
@@ -73,7 +106,7 @@ const PLATFORM_STATS = [
 ];
 
 // ─── Role data ────────────────────────────────────────────────────────────────
-
+// The 12 primary role categories a user can choose from on Step 1.
 const ROLES = [
   { label: "Frontend Dev", Icon: Layout },
   { label: "Backend Dev", Icon: Server },
@@ -89,6 +122,7 @@ const ROLES = [
   { label: "Other", Icon: MoreHorizontal },
 ];
 
+// Seniority levels with year-range descriptions. Stored as the `v` value.
 const SENIORITY = [
   { v: "junior", label: "Junior", desc: "0–2 yrs" },
   { v: "mid", label: "Mid-level", desc: "2–5 yrs" },
@@ -98,7 +132,8 @@ const SENIORITY = [
 ];
 
 // ─── Skills data ──────────────────────────────────────────────────────────────
-
+// Skills are organised into 7 categories. Each category has an icon and a list
+// of skill names. The user browses by category and clicks skills to select them.
 const SKILL_CATEGORIES: { label: string; Icon: React.ElementType; skills: string[] }[] = [
   {
     label: "Frontend",
@@ -137,6 +172,7 @@ const SKILL_CATEGORIES: { label: string; Icon: React.ElementType; skills: string
   },
 ];
 
+// Proficiency levels used to rate each selected skill.
 const PROFICIENCY = [
   { v: "foundational", label: "Learning" },
   { v: "proficient", label: "Proficient" },
@@ -145,7 +181,6 @@ const PROFICIENCY = [
 ];
 
 // ─── Preference data ──────────────────────────────────────────────────────────
-
 const WORK_TYPES = ["Full-time", "Contract", "Freelance", "Open to anything"];
 const ARRANGEMENTS = ["Remote", "Hybrid", "Onsite", "Flexible"];
 const SALARY_RANGES = [
@@ -167,31 +202,46 @@ const AVAILABILITY_OPTS = [
 // ─── Root component ───────────────────────────────────────────────────────────
 
 function TalentOnboarding() {
+  // AUTH: Used to access the display name and to call `refresh()` after saving.
   const auth = useAuth();
   const { profile } = auth;
+
+  // NAVIGATION: Navigate to /app after onboarding completes.
   const router = useRouter();
+
+  // STATE: Which step (1–4) we are on.
   const [step, setStep] = useState(1);
+
+  // STATE: True while the final save operation is in progress.
   const [saving, setSaving] = useState(false);
+
+  // STATE: Error message shown in the footer if the save fails.
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Step 1
+  // STATE — Step 1: role type and seniority level.
   const [role, setRole] = useState("");
   const [seniority, setSeniority] = useState("");
-  // Step 2
+
+  // STATE — Step 2: currently visible skill category index + selected skills.
+  // `skills` is a Record<skillName, proficiencyLevel> so we can rate each skill.
   const [activeCategory, setActiveCategory] = useState(0);
   const [skills, setSkills] = useState<Record<string, string>>({});
-  // Step 3
+
+  // STATE — Step 3: work preferences.
   const [workTypes, setWorkTypes] = useState<string[]>([]);
   const [arrangement, setArrangement] = useState("");
   const [location, setLocation] = useState("");
   const [salary, setSalary] = useState("");
   const [availability, setAvailability] = useState("");
-  // Step 4
+
+  // STATE — Step 4: portfolio links (all optional).
   const [github, setGithub] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [website, setWebsite] = useState("");
   const [other, setOther] = useState("");
 
+  // Toggle a skill on/off. If not selected, adds it with "proficient" as the default level.
+  // If already selected, removes it from the map.
   function toggleSkill(name: string) {
     setSkills((prev) => {
       if (prev[name] !== undefined) {
@@ -203,26 +253,33 @@ function TalentOnboarding() {
     });
   }
 
+  // VALIDATION: Returns true only if the current step has the minimum required data.
+  // Used to enable/disable the "Continue" button.
   function canContinue() {
     if (step === 1) return !!role && !!seniority;
     if (step === 2) return Object.keys(skills).length > 0;
     if (step === 3) return workTypes.length > 0 && !!arrangement && !!availability;
-    return true;
+    return true; // Step 4 (portfolio links) is fully optional
   }
 
+  // DATABASE + AUTH + NAVIGATION: Save all collected data to Supabase and navigate to /app.
   async function done() {
     setSaving(true);
     setSaveError(null);
-    // Use getUser() directly to avoid a race condition where profile context
-    // hasn't loaded yet (e.g. right after email/password signup).
+
+    // AUTH: Use getUser() directly to avoid a race condition where the auth context
+    // profile hasn't loaded yet (e.g. immediately after email/password signup).
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user?.id) {
+      // AUTH: No session found — redirect to login.
       router.navigate({ to: "/login" });
       return;
     }
+
     try {
+      // DATABASE: Write the talent profile data (headline, location, availability, skills).
       await upsertTalentOnboarding(user.id, {
         headline: `${seniority} ${role}`.trim(),
         location,
@@ -232,8 +289,11 @@ function TalentOnboarding() {
           level: level as "foundational" | "proficient" | "advanced" | "expert",
         })),
       });
+      // DATABASE: Mark the user's onboarding as complete in the profiles table.
       await completeOnboarding(user.id);
+      // AUTH: Refresh the auth session so the context picks up the updated profile.
       await auth.refresh();
+      // NAVIGATION: Send the user to their talent dashboard.
       router.navigate({ to: "/app" });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -242,13 +302,13 @@ function TalentOnboarding() {
   }
 
   const isLast = step === STEP_META.length;
-  const meta = STEP_META[step - 1];
+  const meta = STEP_META[step - 1]; // Current step's metadata (icon, title, insight)
 
   return (
     <div className="flex min-h-dvh">
-      {/* ── Left panel ── */}
+      {/* ── Left panel — sidebar with step list, insight, and platform stats ── */}
       <aside className="hidden lg:flex w-[340px] shrink-0 flex-col justify-between bg-foreground px-10 py-12 text-background sticky top-0 h-dvh overflow-hidden">
-        {/* Logo */}
+        {/* Logo — links back to the landing page */}
         <Link to="/" className="flex items-center gap-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-background/10 ring-1 ring-background/20">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -260,28 +320,29 @@ function TalentOnboarding() {
           <span className="font-display text-xl">Skill Network</span>
         </Link>
 
-        {/* Step list */}
+        {/* Step list — shows all 4 steps with done/active/future visual states */}
         <nav className="space-y-1">
           {STEP_META.map((s, i) => {
             const num = i + 1;
-            const done = num < step;
-            const active = num === step;
+            const done = num < step;   // Steps before current are marked done
+            const active = num === step; // Current step is highlighted
             return (
               <div key={num} className="flex gap-4">
-                {/* Line + circle column */}
+                {/* Circle + connector line column */}
                 <div className="flex flex-col items-center">
                   <div
                     className={
                       "grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold transition-all duration-300 " +
                       (done
-                        ? "bg-background text-foreground"
+                        ? "bg-background text-foreground"       // Done: solid white circle
                         : active
-                          ? "ring-2 ring-background text-background"
-                          : "ring-1 ring-background/20 text-background/30")
+                          ? "ring-2 ring-background text-background" // Active: ring highlight
+                          : "ring-1 ring-background/20 text-background/30") // Future: dimmed
                     }
                   >
                     {done ? <Check size={13} strokeWidth={2.5} /> : num}
                   </div>
+                  {/* Vertical connector line between step circles */}
                   {i < STEP_META.length - 1 && (
                     <div
                       className={
@@ -292,7 +353,7 @@ function TalentOnboarding() {
                   )}
                 </div>
 
-                {/* Label column */}
+                {/* Step label + subtitle (only shown for the active step) */}
                 <div className="pb-6">
                   <div
                     className={
@@ -317,7 +378,7 @@ function TalentOnboarding() {
           })}
         </nav>
 
-        {/* Insight + stats */}
+        {/* Insight quote + platform stats at the bottom of the sidebar */}
         <div className="space-y-6">
           <div className="rounded-xl bg-background/[0.06] p-4 ring-1 ring-background/10">
             <meta.Icon size={16} className="mb-2 text-background/50" />
@@ -334,9 +395,9 @@ function TalentOnboarding() {
         </div>
       </aside>
 
-      {/* ── Right panel ── */}
+      {/* ── Right panel — main content area ── */}
       <div className="flex flex-1 flex-col">
-        {/* Mobile top bar */}
+        {/* Mobile top bar — only visible on small screens */}
         <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4 lg:hidden">
           <Link to="/" className="flex items-center gap-2">
             <span className="grid h-7 w-7 place-items-center rounded-md bg-foreground text-background">
@@ -353,7 +414,7 @@ function TalentOnboarding() {
           </span>
         </div>
 
-        {/* Progress bar (full width on mobile, top of right panel on desktop) */}
+        {/* Progress bar — fills from left to right as steps are completed */}
         <div className="h-0.5 bg-border lg:block">
           <div
             className="h-full bg-primary transition-all duration-700 ease-out"
@@ -361,10 +422,10 @@ function TalentOnboarding() {
           />
         </div>
 
-        {/* Step content */}
+        {/* Step content area — scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-10 lg:px-16 lg:py-14">
           <div className="mx-auto max-w-lg">
-            {/* Step heading */}
+            {/* Step heading — icon + step counter + title */}
             <div className="mb-10" key={`heading-${step}`}>
               <div className="mb-3 flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -377,7 +438,7 @@ function TalentOnboarding() {
               <h1 className="font-display text-4xl leading-tight text-balance">{meta.title}</h1>
             </div>
 
-            {/* Step body */}
+            {/* Step body — each step renders its own sub-component */}
             <div key={step} className="animate-fade-up">
               {step === 1 && (
                 <Step1Role
@@ -427,14 +488,16 @@ function TalentOnboarding() {
           </div>
         </div>
 
-        {/* Sticky bottom nav */}
+        {/* Sticky bottom navigation bar — Back, Continue/Enter buttons */}
         <div className="sticky bottom-0 border-t border-border bg-background/95 px-6 py-4 backdrop-blur-sm lg:px-16">
+          {/* STATE: Save error shown above the nav buttons if the final save fails */}
           {saveError && (
             <p className="mx-auto mb-3 max-w-lg rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
               {saveError}
             </p>
           )}
           <div className="mx-auto flex max-w-lg items-center justify-between">
+            {/* Back button — disabled on the first step */}
             <button
               type="button"
               onClick={() => setStep((s) => s - 1)}
@@ -446,6 +509,7 @@ function TalentOnboarding() {
             </button>
 
             <div className="flex flex-col items-center gap-1.5">
+              {/* VALIDATION: Continue button — disabled until canContinue() returns true */}
               {!isLast ? (
                 <button
                   type="button"
@@ -457,6 +521,7 @@ function TalentOnboarding() {
                   <ArrowRight size={15} />
                 </button>
               ) : (
+                // DATABASE + NAVIGATION: Final "Enter the network" button on step 4
                 <button
                   type="button"
                   onClick={done}
@@ -467,6 +532,7 @@ function TalentOnboarding() {
                   {!saving && <ArrowRight size={15} />}
                 </button>
               )}
+              {/* Skip link — lets users skip optional steps (steps 2, 3, 4) */}
               {!isLast && (
                 <button
                   type="button"
@@ -485,7 +551,8 @@ function TalentOnboarding() {
 }
 
 // ─── Step 1: Role & Seniority ─────────────────────────────────────────────────
-
+// Presents a grid of 12 role tiles and a row of seniority buttons.
+// Both must be selected before the user can continue to step 2.
 function Step1Role({
   role,
   setRole,
@@ -499,7 +566,7 @@ function Step1Role({
 }) {
   return (
     <div className="space-y-10">
-      {/* Role grid */}
+      {/* Role grid — 12 tiles, one per role category */}
       <div>
         <p className="mb-4 text-sm text-muted-foreground">Pick your primary role — be specific.</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -533,7 +600,7 @@ function Step1Role({
         </div>
       </div>
 
-      {/* Seniority */}
+      {/* Seniority level selector — pill buttons */}
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Seniority level
@@ -572,7 +639,8 @@ function Step1Role({
 }
 
 // ─── Step 2: Skills ───────────────────────────────────────────────────────────
-
+// Category tabs at the top, skill chips below. Selected skills appear in a
+// proficiency rating panel. At least one skill must be selected to continue.
 function Step2Skills({
   skills,
   activeCategory,
@@ -587,7 +655,7 @@ function Step2Skills({
   setSkillLevel: (n: string, l: string) => void;
 }) {
   const selected = Object.entries(skills);
-  const cat = SKILL_CATEGORIES[activeCategory];
+  const cat = SKILL_CATEGORIES[activeCategory]; // Currently visible category
 
   return (
     <div className="space-y-6">
@@ -595,7 +663,7 @@ function Step2Skills({
         Select skills you actually use. Rate each one honestly — companies see this.
       </p>
 
-      {/* Category tabs with icons */}
+      {/* Category tab pills — clicking a tab switches the skill list below */}
       <div className="flex flex-wrap gap-1.5">
         {SKILL_CATEGORIES.map((c, i) => {
           const active = i === activeCategory;
@@ -618,7 +686,7 @@ function Step2Skills({
         })}
       </div>
 
-      {/* Skill chips */}
+      {/* Skill chips for the active category — toggled on/off by clicking */}
       <div className="flex flex-wrap gap-2">
         {cat.skills.map((skill) => {
           const isSelected = skills[skill] !== undefined;
@@ -641,7 +709,7 @@ function Step2Skills({
         })}
       </div>
 
-      {/* Selected skills with proficiency */}
+      {/* Proficiency rating panel — only visible if at least one skill is selected */}
       {selected.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
@@ -651,6 +719,7 @@ function Step2Skills({
             {selected.map(([name, level]) => (
               <div key={name} className="flex items-center justify-between gap-4">
                 <span className="text-sm font-medium">{name}</span>
+                {/* Proficiency buttons: Learning / Proficient / Advanced / Expert */}
                 <div className="flex gap-1">
                   {PROFICIENCY.map((p) => (
                     <button
@@ -660,8 +729,8 @@ function Step2Skills({
                       className={
                         "rounded-md px-2.5 py-1 text-xs font-medium transition-colors " +
                         (level === p.v
-                          ? "bg-foreground text-background"
-                          : "bg-accent text-muted-foreground hover:text-foreground")
+                          ? "bg-foreground text-background"  // Selected: solid
+                          : "bg-accent text-muted-foreground hover:text-foreground") // Unselected
                       }
                     >
                       {p.label}
@@ -678,7 +747,9 @@ function Step2Skills({
 }
 
 // ─── Step 3: Preferences ──────────────────────────────────────────────────────
-
+// Work type (multi-select), arrangement (single), location text input,
+// salary range (single), and availability (single). workTypes, arrangement,
+// and availability are all required before continuing.
 function Step3Preferences({
   workTypes,
   setWorkTypes,
@@ -702,6 +773,7 @@ function Step3Preferences({
   availability: string;
   setAvailability: (v: string) => void;
 }) {
+  // Generic toggle helper for multi-select arrays.
   function toggle(arr: string[], v: string, set: (a: string[]) => void) {
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   }
@@ -712,7 +784,7 @@ function Step3Preferences({
         This shapes which opportunities we surface for you — nothing is locked in.
       </p>
 
-      {/* Work type */}
+      {/* Work type — multi-select pill group */}
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Type of work
@@ -740,7 +812,7 @@ function Step3Preferences({
         </div>
       </div>
 
-      {/* Arrangement */}
+      {/* Arrangement — single-select 4-column grid */}
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Work arrangement
@@ -764,7 +836,7 @@ function Step3Preferences({
         </div>
       </div>
 
-      {/* Location + salary */}
+      {/* Location (text) + salary range (grid) — side by side on wider screens */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <label className="block">
@@ -803,7 +875,7 @@ function Step3Preferences({
         </div>
       </div>
 
-      {/* Availability */}
+      {/* Availability — 4 options in a 2×2 grid */}
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Availability
@@ -831,7 +903,8 @@ function Step3Preferences({
 }
 
 // ─── Step 4: Portfolio ────────────────────────────────────────────────────────
-
+// Four optional link fields: GitHub, LinkedIn, portfolio website, and "other".
+// Renders a confirmation message once any link is entered.
 function Step4Portfolio({
   github,
   setGithub,
@@ -851,8 +924,9 @@ function Step4Portfolio({
   setWebsite: (v: string) => void;
   other: string;
   setOther: (v: string) => void;
-  name: string;
+  name: string; // The user's display name — used in the confirmation message
 }) {
+  // Each link field has a label, placeholder, current value, setter, and icon.
   const links = [
     {
       label: "GitHub",
@@ -884,6 +958,7 @@ function Step4Portfolio({
     },
   ];
 
+  // STATE: True if any link has been filled in — triggers the confirmation message.
   const hasAny = github || linkedin || website || other;
 
   return (
@@ -894,6 +969,7 @@ function Step4Portfolio({
 
       <div className="space-y-4">
         {links.map(({ label, placeholder, value, set, Icon }) => (
+          // Each field is a styled label wrapper with an icon on the left.
           <label
             key={label}
             className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 has-[:focus]:border-primary has-[:focus]:ring-2 has-[:focus]:ring-primary/20 transition-colors cursor-text"
@@ -914,9 +990,11 @@ function Step4Portfolio({
         ))}
       </div>
 
+      {/* STATE: Confirmation message shown once at least one link is entered */}
       {hasAny && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <p className="text-sm text-foreground">
+            {/* Greet the user by first name if we have their name */}
             <span className="font-medium">{name ? `Great, ${name.split(" ")[0]}.` : "Great."}</span>{" "}
             Your profile is ready. You can refine everything from your dashboard anytime.
           </p>

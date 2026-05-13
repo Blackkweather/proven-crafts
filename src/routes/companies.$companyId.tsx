@@ -1,3 +1,21 @@
+// =============================================================================
+// COMPANY PROFILE PAGE — src/routes/companies.$companyId.tsx
+// =============================================================================
+// Public-facing profile page for a specific company. The URL parameter
+// `$companyId` is the Supabase user ID of the company account. Accessible by
+// anyone — logged-out visitors, talent, and other companies.
+//
+// Shows: company name, industry, size, anti-ghosting badge, "about" paragraph,
+// hiring transparency metrics (trust score, response time, ghosting rate,
+// offer rate), list of open roles, and active challenges.
+//
+// DATA FLOW: Route loader fetches:
+//   - `fetchProfile(companyId)` — company name, about, trust data
+//   - `fetchJobs()` — ALL jobs, then filtered client-side by company_id
+//   - `fetchChallenges()` — ALL challenges, then filtered client-side by company_id
+// KEYWORDS: DATABASE, NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { fetchProfile, fetchJobs, fetchChallenges } from "@/lib/db";
@@ -13,18 +31,25 @@ import {
   Zap,
 } from "lucide-react";
 
+// NAVIGATION: Dynamic route — "/companies/:companyId" with a route loader.
 export const Route = createFileRoute("/companies/$companyId")({
+  // DATABASE: Load the company profile, their open jobs, and their active challenges.
   loader: async ({ params }) => {
     try {
+      // Fetch the company's profile data (name, bio, trust metrics, etc.)
       const { profile: company } = await fetchProfile(params.companyId);
+      // Fetch all jobs and challenges, then filter to only this company's records.
+      // (A future optimisation would be to add a companyId filter at the DB level.)
       const [allJobs, allChallenges] = await Promise.all([fetchJobs(), fetchChallenges()]);
       const companyJobs = allJobs.filter((j) => j.company_id === params.companyId);
       const companyChallenges = allChallenges.filter((c) => c.company_id === params.companyId);
       return { company, jobs: companyJobs, challenges: companyChallenges };
     } catch {
+      // If the profile doesn't exist, show the not-found component.
       throw notFound();
     }
   },
+  // SEO: Set page title and Open Graph tags from the company profile data.
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -41,6 +66,7 @@ export const Route = createFileRoute("/companies/$companyId")({
       : [],
   }),
   component: CompanyProfilePage,
+  // Shown if the loader throws notFound() — company profile doesn't exist.
   notFoundComponent: () => (
     <div className="grid min-h-dvh place-items-center bg-background">
       <div className="text-center">
@@ -58,10 +84,16 @@ export const Route = createFileRoute("/companies/$companyId")({
 });
 
 function CompanyProfilePage() {
+  // DATABASE: Destructure the loader result for use in the render.
   const { company, jobs: companyJobs, challenges: companyChallenges } = Route.useLoaderData();
 
+  // Resolve the display name — companies have two possible name fields.
   const companyName = company.company_name ?? company.display_name;
+
+  // The anti-ghosting badge is a boolean flag set on the profile.
   const hasAntiGhosting = company.anti_ghosting_badge;
+
+  // Only show the transparency section if at least one trust metric is available.
   const hasTrustData =
     company.trust_score != null ||
     company.response_time_days != null ||
@@ -73,16 +105,18 @@ function CompanyProfilePage() {
       <SiteHeader />
 
       <article className="container mx-auto px-6 pb-24 pt-16 lg:pt-20">
-        {/* Header */}
+        {/* Header — logo initials, company name, anti-ghosting badge, stats row */}
         <header className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-8">
             <div className="flex items-start gap-5">
+              {/* Company avatar: initials-based badge */}
               <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-foreground font-display text-3xl text-background">
                 {company.company_initials ?? companyName?.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h1 className="font-display text-4xl leading-tight md:text-5xl">{companyName}</h1>
+                  {/* Anti-ghosting badge — only shown if the company has earned it */}
                   {hasAntiGhosting && (
                     <span className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
                       <ShieldCheck size={11} />
@@ -110,13 +144,14 @@ function CompanyProfilePage() {
               </div>
             </div>
 
+            {/* Company "about" paragraph */}
             {company.company_about && (
               <p className="mt-8 max-w-2xl text-lg text-foreground/85 leading-relaxed">
                 {company.company_about}
               </p>
             )}
 
-            {/* Stats row */}
+            {/* Stats row — open roles, active challenges, response time */}
             <div className="mt-8 flex flex-wrap gap-6">
               <div className="flex items-center gap-2 text-sm">
                 <Briefcase size={15} className="text-primary" />
@@ -142,7 +177,7 @@ function CompanyProfilePage() {
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar CTA card — prompts talent to apply or take a challenge */}
           <div className="lg:col-span-4">
             <div className="space-y-4">
               <div className="surface-paper rounded-2xl p-6 space-y-4">
@@ -152,6 +187,7 @@ function CompanyProfilePage() {
                 <p className="text-sm text-muted-foreground">
                   Apply to an open role or take on one of their skill challenges to get noticed.
                 </p>
+                {/* NAVIGATION: Link to the jobs browser page */}
                 {companyJobs.length > 0 && (
                   <Link
                     to="/app/jobs"
@@ -160,6 +196,7 @@ function CompanyProfilePage() {
                     View open roles <ArrowRight size={14} />
                   </Link>
                 )}
+                {/* NAVIGATION: Link to the challenges browser page */}
                 {companyChallenges.length > 0 && (
                   <Link
                     to="/challenges"
@@ -173,7 +210,7 @@ function CompanyProfilePage() {
           </div>
         </header>
 
-        {/* Trust score section */}
+        {/* Trust/transparency section — only shown if trust data exists */}
         {hasTrustData && (
           <section className="mt-16">
             <h2 className="font-display text-2xl">Hiring transparency</h2>
@@ -182,6 +219,7 @@ function CompanyProfilePage() {
             </p>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Each TrustCard is rendered only if the corresponding metric is non-null */}
               {company.trust_score != null && (
                 <TrustCard
                   icon={<ShieldCheck size={18} />}
@@ -230,6 +268,7 @@ function CompanyProfilePage() {
               )}
             </div>
 
+            {/* Anti-ghosting explanation banner — only shown for badge holders */}
             {hasAntiGhosting && (
               <div className="mt-4 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
                 <ShieldCheck size={16} className="mt-0.5 shrink-0 text-primary" />
@@ -243,12 +282,13 @@ function CompanyProfilePage() {
           </section>
         )}
 
-        {/* Open roles */}
+        {/* Open roles list — each links to the full job detail page */}
         {companyJobs.length > 0 && (
           <section className="mt-16">
             <h2 className="font-display text-2xl">Open roles</h2>
             <div className="mt-6 space-y-3">
               {companyJobs.map((job) => (
+                // NAVIGATION: Each row links to the job detail page.
                 <Link
                   key={job.id}
                   to="/jobs/$jobId"
@@ -266,6 +306,7 @@ function CompanyProfilePage() {
                       <span>{job.comp}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
+                      {/* Show first 4 required skills as pills */}
                       {job.required_skills.slice(0, 4).map((s) => (
                         <span
                           key={s}
@@ -283,12 +324,13 @@ function CompanyProfilePage() {
           </section>
         )}
 
-        {/* Active challenges */}
+        {/* Active challenges grid — each links to the challenge detail page */}
         {companyChallenges.length > 0 && (
           <section className="mt-16">
             <h2 className="font-display text-2xl">Active challenges</h2>
             <div className="mt-6 grid gap-5 md:grid-cols-2">
               {companyChallenges.map((c) => {
+                // Calculate days remaining until this challenge's deadline.
                 const deadlineDays = Math.max(
                   0,
                   Math.ceil(
@@ -296,6 +338,7 @@ function CompanyProfilePage() {
                   ),
                 );
                 return (
+                  // NAVIGATION: Each card links to the challenge detail page.
                   <Link
                     key={c.id}
                     to="/challenges/$challengeId"
@@ -332,6 +375,7 @@ function CompanyProfilePage() {
           </section>
         )}
 
+        {/* Empty state — shown if the company has no open roles or challenges */}
         {companyJobs.length === 0 && companyChallenges.length === 0 && (
           <div className="mt-16 rounded-2xl border border-dashed border-border p-12 text-center">
             <Building2 size={32} className="mx-auto mb-3 text-muted-foreground/40" />
@@ -348,6 +392,9 @@ function CompanyProfilePage() {
   );
 }
 
+// ─── TrustCard ────────────────────────────────────────────────────────────────
+// Displays a single hiring transparency metric (trust score, response time, etc.)
+// The `highlight` prop makes the card use the primary accent colour.
 function TrustCard({
   icon,
   label,

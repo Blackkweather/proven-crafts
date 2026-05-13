@@ -1,7 +1,25 @@
+// =============================================================================
+// LEADERBOARD PAGE — src/routes/leaderboard.tsx
+// =============================================================================
+// Public-facing page showing the top performers from recent skill challenges.
+// Entries are reviewed and ranked by company engineering teams. This page gives
+// every visitor (logged-out or not) transparency into who is performing best
+// on the network — a key trust signal for companies and motivation for talent.
+//
+// Top 3 (gold/silver/bronze badges) get larger "podium" cards. All other ranked
+// entries appear in a compact table below. Each entry links to the talent's
+// public profile.
+//
+// DATA FLOW: Uses the `useLeaderboard` hook which queries Supabase for
+//            challenge result entries joined with talent profiles and challenges.
+// KEYWORDS: DATABASE, NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { useLeaderboard } from "@/lib/hooks";
 
+// NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
     meta: [
@@ -15,12 +33,16 @@ export const Route = createFileRoute("/leaderboard")({
   component: LeaderboardPage,
 });
 
+// Badge styling for gold, silver, and bronze positions.
+// Each entry has a background colour, text colour, and ring (border glow) class.
 const badgeMeta = {
   gold: { label: "1st", cls: "bg-yellow-400 text-yellow-900", ring: "ring-yellow-300/60" },
   silver: { label: "2nd", cls: "bg-slate-300 text-slate-800", ring: "ring-slate-200/60" },
   bronze: { label: "3rd", cls: "bg-amber-600 text-amber-100", ring: "ring-amber-500/40" },
 };
 
+// Generates a 1–2 letter avatar string from a display name.
+// e.g. "Alex Johnson" → "AJ", "Madonna" → "MA", null → "?"
 function getInitials(displayName?: string | null): string {
   if (!displayName) return "?";
   return displayName
@@ -32,8 +54,10 @@ function getInitials(displayName?: string | null): string {
 }
 
 function LeaderboardPage() {
-  const { entries, loading } = useLeaderboard();
+  // DATABASE: Load all leaderboard entries from Supabase via the hook.
+  const { entries, loading, error } = useLeaderboard();
 
+  // Split entries into podium (badge holders) and honourable mentions (no badge).
   const top3 = entries.filter((e) => e.badge != null);
   const rest = entries.filter((e) => e.badge == null);
 
@@ -41,7 +65,7 @@ function LeaderboardPage() {
     <div className="min-h-dvh bg-background">
       <SiteHeader />
 
-      {/* Hero */}
+      {/* Hero section — headline + live stats card */}
       <section className="container mx-auto px-6 pb-12 pt-20 lg:pt-28">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-7">
@@ -58,6 +82,7 @@ function LeaderboardPage() {
               highlighted, and visible to every company on the network. No resume needed.
             </p>
           </div>
+          {/* DATABASE: Live counts for ranked entries, top finishers, and honourable mentions */}
           <div className="lg:col-span-5">
             <div className="surface-paper rounded-2xl p-6">
               <div className="grid grid-cols-3 divide-x divide-border text-center">
@@ -70,13 +95,43 @@ function LeaderboardPage() {
         </div>
       </section>
 
-      {loading && (
+      {/* Error state */}
+      {error && (
         <section className="container mx-auto px-6 pb-12">
-          <div className="text-sm text-muted-foreground">Loading leaderboard…</div>
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            Failed to load leaderboard. Please refresh.
+          </div>
         </section>
       )}
 
-      {/* Podium — top 3 */}
+      {/* Loading state */}
+      {loading && (
+        <section className="container mx-auto px-6 pb-12">
+          <div className="grid gap-4 md:grid-cols-3 mb-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-52 rounded-2xl bg-muted animate-pulse" />
+            ))}
+          </div>
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Empty state */}
+      {!loading && entries.length === 0 && (
+        <section className="container mx-auto px-6 pb-12">
+          <div className="flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-dashed border-border">
+            <div className="text-4xl mb-4">🏆</div>
+            <h3 className="font-display text-lg">No rankings yet</h3>
+            <p className="text-sm text-muted-foreground mt-1">Be the first to submit to a challenge and claim a spot on the leaderboard.</p>
+          </div>
+        </section>
+      )}
+
+      {/* Podium — top 3 entries in larger cards */}
       {!loading && top3.length > 0 && (
         <section className="container mx-auto px-6 pb-12">
           <div className="mb-6 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -85,6 +140,7 @@ function LeaderboardPage() {
           <div className="grid gap-4 md:grid-cols-3">
             {top3.map((entry) => {
               const bm = badgeMeta[entry.badge!];
+              // Resolve the company name from the nested challenge → company relation.
               const companyName =
                 entry.challenge?.company?.company_name ??
                 entry.challenge?.company?.display_name ??
@@ -94,19 +150,20 @@ function LeaderboardPage() {
                   key={entry.rank}
                   className={`relative overflow-hidden rounded-2xl border bg-card p-6 transition-all hover:shadow-elevated ${entry.badge === "gold" ? "border-yellow-300/40 bg-yellow-50/30 dark:bg-yellow-950/10" : "border-border"}`}
                 >
-                  {/* Badge */}
+                  {/* Rank badge in the top-right corner */}
                   <div
                     className={`absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full ring-2 ${bm.cls} ${bm.ring}`}
                   >
                     <span className="text-[10px] font-black">{bm.label}</span>
                   </div>
 
-                  {/* Talent */}
+                  {/* Talent identity — avatar + name + location */}
                   <div className="flex items-center gap-3">
                     <div className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground font-display text-lg">
                       {getInitials(entry.talent?.display_name)}
                     </div>
                     <div>
+                      {/* NAVIGATION: Link to this talent's public profile */}
                       <Link
                         to="/talent/$talentId"
                         params={{ talentId: entry.talent_id }}
@@ -118,7 +175,7 @@ function LeaderboardPage() {
                     </div>
                   </div>
 
-                  {/* Challenge */}
+                  {/* Challenge name that this entry relates to */}
                   <div className="mt-4 rounded-lg border border-border bg-paper px-3 py-2.5 text-xs text-muted-foreground">
                     {companyName && (
                       <>
@@ -129,7 +186,7 @@ function LeaderboardPage() {
                     {entry.challenge?.title}
                   </div>
 
-                  {/* Score */}
+                  {/* Score bar + percentage */}
                   <div className="mt-4 flex items-center gap-3">
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border">
                       <div
@@ -140,11 +197,12 @@ function LeaderboardPage() {
                     <span className="font-mono text-sm font-semibold">{entry.score}%</span>
                   </div>
 
-                  {/* Highlight */}
+                  {/* Reviewer highlight quote */}
                   <p className="mt-4 text-sm italic text-muted-foreground leading-relaxed">
                     "{entry.highlight}"
                   </p>
 
+                  {/* NAVIGATION: Link to full talent profile */}
                   <div className="mt-5">
                     <Link
                       to="/talent/$talentId"
@@ -161,7 +219,7 @@ function LeaderboardPage() {
         </section>
       )}
 
-      {/* Rest of rankings */}
+      {/* Honourable mentions — compact table for entries below the top 3 */}
       {!loading && rest.length > 0 && (
         <section className="container mx-auto px-6 pb-24">
           <div className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -178,15 +236,18 @@ function LeaderboardPage() {
                   key={entry.rank}
                   className={`grid grid-cols-[auto_1fr_auto] items-center gap-5 px-6 py-5 ${i > 0 ? "border-t border-border" : ""}`}
                 >
+                  {/* Rank number */}
                   <span className="font-mono text-sm text-muted-foreground w-5 text-center">
                     {entry.rank}
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-3">
+                      {/* Mini avatar */}
                       <div className="grid h-9 w-9 place-items-center rounded-full bg-foreground text-background font-display text-sm">
                         {getInitials(entry.talent?.display_name)}
                       </div>
                       <div className="min-w-0">
+                        {/* NAVIGATION: Link to talent profile */}
                         <Link
                           to="/talent/$talentId"
                           params={{ talentId: entry.talent_id }}
@@ -200,10 +261,12 @@ function LeaderboardPage() {
                         </div>
                       </div>
                     </div>
+                    {/* Reviewer highlight (truncated to one line) */}
                     <p className="mt-2 text-xs text-muted-foreground italic line-clamp-1">
                       "{entry.highlight}"
                     </p>
                   </div>
+                  {/* Score bar + percentage */}
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="h-1.5 w-24 overflow-hidden rounded-full bg-border hidden md:block">
                       <div
@@ -220,7 +283,7 @@ function LeaderboardPage() {
         </section>
       )}
 
-      {/* CTA */}
+      {/* Closing CTA — encourages users to submit to a challenge */}
       <section className="container mx-auto px-6 pb-28">
         <div className="surface-paper rounded-3xl p-12 text-center">
           <h2 className="font-display text-4xl">Your next submission could be here.</h2>
@@ -228,12 +291,14 @@ function LeaderboardPage() {
             Top 5 performers are visible to every company on the network. No application needed.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {/* NAVIGATION: Link to the challenges browser */}
             <Link
               to="/challenges"
               className="rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Browse open challenges
             </Link>
+            {/* NAVIGATION: Link to sign up */}
             <Link
               to="/signup"
               className="rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium hover:bg-accent"
@@ -249,6 +314,8 @@ function LeaderboardPage() {
   );
 }
 
+// ─── Stat ─────────────────────────────────────────────────────────────────────
+// Used in the hero stats card. n = value, l = label.
 function Stat({ n, l }: { n: string; l: string }) {
   return (
     <div className="px-2">

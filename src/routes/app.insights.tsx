@@ -28,9 +28,9 @@ function InsightsPage() {
 
   const loading = profileLoading || ratesLoading;
 
-  const mySkillNames = new Set(skills.map((s) => s.name));
-  const myRates = rates.filter((r) => mySkillNames.has(r.skill));
-  const otherRates = rates.filter((r) => !mySkillNames.has(r.skill));
+  const mySkillNames = new Set((skills ?? []).map((s) => s.name));
+  const myRates = (rates ?? []).filter((r) => mySkillNames.has(r.skill));
+  const otherRates = (rates ?? []).filter((r) => !mySkillNames.has(r.skill));
 
   const topSkill = myRates.length > 0 ? [...myRates].sort((a, b) => b.median - a.median)[0] : null;
 
@@ -82,7 +82,11 @@ function InsightsPage() {
 
         <div className="mt-5 space-y-3">
           {loading && (
-            <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
+              ))}
+            </div>
           )}
           {!loading && myRates.length === 0 && (
             <div className="py-8 text-center text-sm text-muted-foreground">

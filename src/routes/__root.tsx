@@ -21,6 +21,7 @@
 // =============================================================================
 
 import { Outlet, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import { setHeaders } from "@tanstack/react-start/server";
 import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
@@ -51,7 +52,7 @@ initMonitoring();
 // KEYWORDS: AUTH, NAVIGATION, MIDDLEWARE
 // =============================================================================
 function PostAuthRedirect() {
-  const { user, roles, loading, freshSignIn, consumeFreshSignIn } = useAuth();
+  const { user, profile, roles, loading, freshSignIn, consumeFreshSignIn } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -62,11 +63,8 @@ function PostAuthRedirect() {
     consumeFreshSignIn();
 
     // Check if the user has finished onboarding.
-    // We check the DB metadata first (works across devices), then localStorage
-    // as a fallback (works offline or before the DB syncs).
-    const onboardingDone =
-      (user as any)?.user_metadata?.onboarding_completed_at ||
-      localStorage.getItem("onboarding_complete");
+    // onboarding_completed_at lives in the `profiles` table, loaded via loadProfileAndRoles().
+    const onboardingDone = !!profile?.onboarding_completed_at;
 
     const primaryRole = roles[0] ?? null;
 
@@ -79,7 +77,7 @@ function PostAuthRedirect() {
       // NAVIGATION: Returning user — send to their role-specific dashboard
       router.navigate({ to: dashboardPathFor(primaryRole) });
     }
-  }, [loading, freshSignIn, user, roles, router, consumeFreshSignIn]);
+  }, [loading, freshSignIn, user, profile, roles, router, consumeFreshSignIn]);
 
   // This component renders nothing — it only has side effects
   return null;
@@ -121,6 +119,26 @@ function NotFoundComponent() {
 // shellComponent wraps the HTML/body; component renders inside <body>.
 // =============================================================================
 export const Route = createRootRoute({
+  beforeLoad: () => {
+    setHeaders({
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+      "Content-Security-Policy": [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+        "media-src 'self' blob: https:",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join("; "),
+    });
+  },
   // SEO: Meta tags, OG tags, Twitter cards, and font preloads
   head: () => ({
     meta: [
@@ -184,6 +202,19 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <head>
         {/* Polyfill for process.env in browser environments */}
         <script dangerouslySetInnerHTML={{ __html: "window.process=window.process||{env:{}};" }} />
+        {/* Disable React DevTools in production */}
+        <script dangerouslySetInnerHTML={{ __html: "if(typeof window!==\"undefined\"&&window.__REACT_DEVTOOLS_GLOBAL_HOOK__)window.__REACT_DEVTOOLS_GLOBAL_HOOK__.isDisabled=true;" }} />
+        {/* Block right-click and common devtools shortcuts in production */}
+        {import.meta.env.PROD && (
+          <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key))||(e.ctrlKey&&e.key==='U'))
+      e.preventDefault();
+  });
+})();`.trim() }} />
+        )}
         <HeadContent />
       </head>
       <body>
@@ -214,7 +245,7 @@ function RootComponent() {
           <div className="max-w-md text-center">
             <div className="font-display text-4xl text-destructive">Something broke</div>
             <p className="mt-3 text-sm text-muted-foreground">
-              {error instanceof Error ? error.message : "An unexpected error occurred."}
+              {import.meta.env.DEV && error instanceof Error ? error.message : "An unexpected error occurred."}
             </p>
             <button
               onClick={() => window.location.reload()}

@@ -15,9 +15,21 @@ const kindMeta = {
 
 function NotificationsPage() {
   const { user } = useAuth();
-  const { notifications, loading, unreadCount, markAllRead } = useNotifications(user?.id);
+  const { notifications, loading, error, unreadCount, markAllRead } = useNotifications(user?.id);
 
-  if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
+  if (loading) return (
+    <div className="space-y-3 max-w-3xl">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
+      ))}
+    </div>
+  );
+
+  if (error) return (
+    <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+      Failed to load notifications. Please refresh.
+    </div>
+  );
 
   return (
     <div className="max-w-3xl">

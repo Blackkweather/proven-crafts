@@ -1,20 +1,42 @@
+// =============================================================================
+// LANDING PAGE — src/routes/index.tsx
+// =============================================================================
+// The public-facing home page of Skill Network. This is what every visitor
+// sees first. It explains the platform, shows a live candidate preview card,
+// and displays the most recent job and challenge fetched from the database.
+// Both talent (job seekers) and companies (employers) are addressed here,
+// with separate CTAs pointing each to the right onboarding or marketing page.
+//
+// DATA FLOW: Uses `useJobs` and `useChallenges` hooks (which query Supabase)
+//            to load the first available job and challenge for the preview
+//            section. The candidate card (Alex Johnson) is hardcoded/static
+//            and is purely illustrative — it does not come from the database.
+// KEYWORDS: DATABASE, DASHBOARD, NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { SkillTag } from "@/components/skill-tag";
 import { MatchScore } from "@/components/match-score";
 import { useChallenges, useJobs } from "@/lib/hooks";
 
+// NAVIGATION: This is the root route "/" — the entry point of the whole app.
 export const Route = createFileRoute("/")({
   component: Landing,
 });
 
 function Landing() {
+  // DATABASE: Load live jobs and challenges from Supabase via hooks.
+  // These populate the "dual preview" section at the bottom of the page.
   const { challenges, loading: challengesLoading } = useChallenges();
   const { jobs, loading: jobsLoading } = useJobs();
 
+  // STATE: Pick the first job and challenge to feature as a live preview card.
   const featuredJob = jobs[0] ?? null;
   const featuredChallenge = challenges[0] ?? null;
 
+  // STATE: Calculate how many days remain until the featured challenge closes.
+  // Returns 0 if the deadline has passed.
   const deadlineDays = featuredChallenge
     ? Math.max(
         0,
@@ -28,7 +50,7 @@ function Landing() {
     <div className="min-h-dvh bg-background">
       <SiteHeader />
 
-      {/* HERO */}
+      {/* HERO — main headline, sub-copy, and dual CTAs for talent/companies */}
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10">
           <div className="absolute -left-32 top-20 h-96 w-96 rounded-full bg-primary/8 blur-3xl" />
@@ -52,12 +74,14 @@ function Landing() {
               surface the right people in days, not months.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
+              {/* NAVIGATION: Talent CTA → signup page */}
               <Link
                 to="/signup"
                 className="rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
               >
                 I'm talent — get matched
               </Link>
+              {/* NAVIGATION: Company CTA → companies marketing page */}
               <Link
                 to="/companies"
                 className="rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
@@ -66,6 +90,7 @@ function Landing() {
               </Link>
             </div>
 
+            {/* DATABASE: Challenge count is live; other stats are hardcoded marketing copy */}
             <div className="mt-14 grid grid-cols-3 gap-8 border-t border-border pt-8 max-w-md">
               <Stat n="12.4k" l="Verified talent" />
               <Stat n={challengesLoading ? "…" : `${challenges.length}+`} l="Active challenges" />
@@ -73,7 +98,7 @@ function Landing() {
             </div>
           </div>
 
-          {/* Candidate preview card — static illustrative data */}
+          {/* Candidate preview card — static illustrative data, NOT from the database */}
           <div className="lg:col-span-5">
             <div className="relative">
               <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-br from-warm/60 via-transparent to-primary/10 blur-2xl" />
@@ -98,6 +123,7 @@ function Landing() {
                         </div>
                       </div>
                     </div>
+                    {/* MatchScore component renders a circular percentage badge */}
                     <MatchScore value={94} />
                   </div>
 
@@ -106,6 +132,7 @@ function Landing() {
                     collaborative editor used by 50k teams.
                   </p>
 
+                  {/* SkillTag renders a styled pill for each skill with level styling */}
                   <div className="mt-5 flex flex-wrap gap-2">
                     {[
                       { name: "React", level: "expert" as const },
@@ -133,7 +160,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* HOW */}
+      {/* HOW IT WORKS — 3-step explainer for the platform's core loop */}
       <section className="border-y border-border bg-paper">
         <div className="container mx-auto px-6 py-24">
           <div className="grid gap-12 lg:grid-cols-12">
@@ -170,7 +197,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* BUILT FOR BOTH SIDES */}
+      {/* BUILT FOR BOTH SIDES — dual-audience value props for talent and companies */}
       <section className="container mx-auto px-6 py-24">
         <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           One platform · two sides
@@ -179,6 +206,7 @@ function Landing() {
           Built for the people who do the work — and the people who hire them.
         </h2>
         <div className="mt-12 grid gap-6 md:grid-cols-2">
+          {/* Talent card */}
           <div className="surface-paper rounded-2xl p-8">
             <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
               For talent
@@ -198,6 +226,7 @@ function Landing() {
                 out directly.
               </li>
             </ul>
+            {/* NAVIGATION: Link to the talent-specific marketing page */}
             <Link
               to="/talent"
               className="mt-6 inline-block text-sm font-medium text-primary hover:underline"
@@ -205,6 +234,7 @@ function Landing() {
               See it for talent →
             </Link>
           </div>
+          {/* Company card */}
           <div className="rounded-2xl border border-border bg-foreground p-8 text-background">
             <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-background/60">
               For companies
@@ -224,6 +254,7 @@ function Landing() {
                 recruiters, no keyword games.
               </li>
             </ul>
+            {/* NAVIGATION: Link to the companies marketing page */}
             <Link
               to="/companies"
               className="mt-6 inline-block text-sm font-medium text-background hover:underline"
@@ -234,10 +265,10 @@ function Landing() {
         </div>
       </section>
 
-      {/* DUAL PREVIEW */}
+      {/* DUAL PREVIEW — live job and challenge cards pulled from the database */}
       {(featuredJob || featuredChallenge) && (
         <section className="container mx-auto grid gap-6 px-6 py-24 lg:grid-cols-2">
-          {/* Job card */}
+          {/* DATABASE: Featured job card — rendered only if a live job exists */}
           {featuredJob && !jobsLoading && (
             <article className="surface-paper rounded-2xl p-6 transition-all hover:shadow-elevated">
               <div className="flex items-center justify-between">
@@ -281,7 +312,7 @@ function Landing() {
             </article>
           )}
 
-          {/* Challenge card */}
+          {/* DATABASE: Featured challenge card — rendered only if a live challenge exists */}
           {featuredChallenge && !challengesLoading && (
             <article className="rounded-2xl border border-border bg-foreground p-6 text-background transition-all hover:shadow-elevated">
               <div className="flex items-center justify-between">
@@ -315,7 +346,7 @@ function Landing() {
         </section>
       )}
 
-      {/* CLOSING CTA */}
+      {/* CLOSING CTA — bottom-of-page call to action to sign up or log in */}
       <section className="container mx-auto px-6 pb-28">
         <div className="surface-paper relative overflow-hidden rounded-3xl p-12 text-center md:p-20">
           <h2 className="mx-auto max-w-3xl font-display text-4xl leading-tight md:text-5xl">
@@ -324,12 +355,14 @@ function Landing() {
             <span className="italic text-muted-foreground">Show it instead.</span>
           </h2>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {/* NAVIGATION: Primary CTA → create account */}
             <Link
               to="/signup"
               className="rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Create your profile
             </Link>
+            {/* NAVIGATION: Secondary CTA → login for existing users */}
             <Link
               to="/login"
               className="rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium hover:bg-accent"
@@ -345,6 +378,9 @@ function Landing() {
   );
 }
 
+// ─── Helper components ────────────────────────────────────────────────────────
+
+// Stat: displays a large number + small label for the hero stats row.
 function Stat({ n, l }: { n: string; l: string }) {
   return (
     <div>
@@ -354,6 +390,7 @@ function Stat({ n, l }: { n: string; l: string }) {
   );
 }
 
+// MiniStat: compact stat box used in the illustrative candidate card.
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border bg-background px-3 py-2">
@@ -363,6 +400,8 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Step: one cell in the "how it works" 3-column grid.
+// n = step number (01, 02, 03), t = title, b = body text.
 function Step({ n, t, b }: { n: string; t: string; b: string }) {
   return (
     <div className="bg-background p-8">

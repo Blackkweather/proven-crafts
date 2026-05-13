@@ -1,7 +1,21 @@
+// =============================================================================
+// COMPANIES MARKETING PAGE — src/routes/companies.tsx
+// =============================================================================
+// Static marketing page aimed at hiring companies. Explains the platform's
+// value proposition for employers: post focused skill challenges, review real
+// submissions, and hire faster using transparent match scores. No data fetching
+// occurs on this page — all content is hardcoded.
+// Sets Open Graph and meta tags for SEO.
+//
+// KEYWORDS: NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 
+// NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/companies")({
+  // Sets browser title and description for search engines / social sharing.
   head: () => ({
     meta: [
       { title: "For Companies — Skill Network" },
@@ -19,6 +33,8 @@ function CompaniesMarketing() {
   return (
     <div className="min-h-dvh bg-background">
       <SiteHeader />
+
+      {/* Hero section — headline, sub-copy, CTAs, and an illustrative "control panel" card */}
       <section className="container mx-auto grid gap-12 px-6 pt-20 pb-16 lg:grid-cols-12 lg:pt-28">
         <div className="lg:col-span-7">
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -32,12 +48,14 @@ function CompaniesMarketing() {
             people whose skills actually map to the role.
           </p>
           <div className="mt-8 flex gap-3">
+            {/* NAVIGATION: Primary CTA — take companies to the sign-up flow */}
             <Link
               to="/signup"
               className="rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Set up hiring
             </Link>
+            {/* NAVIGATION: Secondary CTA — existing company accounts log in here */}
             <Link
               to="/login"
               className="rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium hover:bg-accent"
@@ -46,6 +64,8 @@ function CompaniesMarketing() {
             </Link>
           </div>
         </div>
+
+        {/* Illustrative "hiring control panel" card — static hardcoded stats, not live data */}
         <div className="lg:col-span-5">
           <div className="surface-paper rounded-2xl p-6 shadow-soft">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -68,6 +88,7 @@ function CompaniesMarketing() {
         </div>
       </section>
 
+      {/* 3-step how-it-works section for companies */}
       <section className="container mx-auto grid gap-6 px-6 pb-24 md:grid-cols-3">
         {[
           {

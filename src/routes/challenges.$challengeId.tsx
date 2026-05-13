@@ -1,3 +1,24 @@
+// =============================================================================
+// CHALLENGE DETAIL PAGE — src/routes/challenges.$challengeId.tsx
+// =============================================================================
+// Full detail page for a specific skill challenge. Accessible to anyone.
+// Shows the challenge brief, required skills (with match highlighting for
+// logged-in talent), submission count, deadline, and optional prize.
+//
+// Clicking "Start submission" opens the SubmitDialog overlay. The dialog
+// walks the user through a 3-step flow:
+//   1. form  — paste a work URL and write a 500-word approach description
+//   2. evaluating — Gemini AI reviews the submission (a few seconds)
+//   3. done  — shows the AI score, verdict, strengths, and improvement tips
+//
+// DATA FLOW: Route loader fetches `fetchChallenge(challengeId)` from Supabase.
+//            On submit: `upsertSubmission()` saves the submission to the DB,
+//            then `getAIChallengeEval()` calls the Gemini API for instant
+//            feedback. The AI eval is best-effort — if it fails the submission
+//            still succeeds and the user sees the done state without AI data.
+// KEYWORDS: AUTH, DATABASE, API, STATE, NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
@@ -7,15 +28,19 @@ import { useProfile } from "@/lib/hooks";
 import { MatchScore } from "@/components/match-score";
 import { getAIChallengeEval, type ChallengeEvalResult } from "@/lib/ai";
 
+// NAVIGATION: Dynamic route — "/challenges/:challengeId" with loader and SEO head.
 export const Route = createFileRoute("/challenges/$challengeId")({
+  // DATABASE: Load the full challenge record (with joined company profile) from Supabase.
   loader: async ({ params }) => {
     try {
       const challenge = await fetchChallenge(params.challengeId);
       return { challenge };
     } catch {
+      // Show the not-found UI if the challenge ID doesn't exist.
       throw notFound();
     }
   },
+  // SEO: Set page title and Open Graph tags from the loaded challenge data.
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -27,11 +52,13 @@ export const Route = createFileRoute("/challenges/$challengeId")({
       : [],
   }),
   component: ChallengeDetail,
+  // Generic error boundary.
   errorComponent: ({ error }) => (
     <div className="grid min-h-dvh place-items-center text-sm text-muted-foreground">
       {error.message}
     </div>
   ),
+  // Shown when the loader throws notFound() — challenge is closed or missing.
   notFoundComponent: () => (
     <div className="grid min-h-dvh place-items-center bg-background">
       <div className="text-center">
@@ -50,6 +77,7 @@ export const Route = createFileRoute("/challenges/$challengeId")({
   ),
 });
 
+// Calculates how many of the required skills the current user already has (as a %).
 function matchScore(required: string[], mySkills: string[]): number {
   if (!required.length) return 0;
   const names = mySkills.map((s) => s.toLowerCase());
@@ -57,22 +85,34 @@ function matchScore(required: string[], mySkills: string[]): number {
   return Math.round((matched / required.length) * 100);
 }
 
+// Returns how many days remain before the deadline. Returns 0 if past due.
 function daysLeft(deadlineAt: string): number {
   const ms = new Date(deadlineAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(ms / 86400000));
 }
 
 function ChallengeDetail() {
+  // DATABASE: Pre-loaded challenge data from the route loader.
   const { challenge } = Route.useLoaderData();
+
+  // AUTH: Current user — needed to render the submit button and pass talentId to the dialog.
   const { user } = useAuth();
+
+  // DATABASE: Load the current user's skills for match score calculation.
   const { skills } = useProfile(user?.id);
+
+  // STATE: Controls whether the SubmitDialog overlay is visible.
   const [submitOpen, setSubmitOpen] = useState(false);
 
   const company = challenge.company;
+
+  // Calculate the viewer's skill match percentage against this challenge's requirements.
   const score = matchScore(
     challenge.required_skills,
     skills.map((s) => s.name),
   );
+
+  // Days until the challenge deadline (0 means closed).
   const deadline = daysLeft(challenge.deadline_at);
 
   return (
@@ -80,6 +120,7 @@ function ChallengeDetail() {
       <SiteHeader />
 
       <article className="container mx-auto px-6 pb-24 pt-16 lg:pt-20">
+        {/* NAVIGATION: Back to the challenges list */}
         <div className="text-xs">
           <Link to="/challenges" className="text-muted-foreground hover:text-foreground">
             ← All challenges
@@ -87,8 +128,10 @@ function ChallengeDetail() {
         </div>
 
         <header className="mt-6 grid gap-10 lg:grid-cols-12">
+          {/* Left: company identity + challenge title + brief */}
           <div className="lg:col-span-8">
             <div className="flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
+              {/* Company avatar: initials badge */}
               <div className="grid h-9 w-9 place-items-center rounded-lg bg-foreground text-background font-display text-sm">
                 {company?.company_initials ??
                   company?.display_name?.slice(0, 2).toUpperCase() ??
@@ -104,12 +147,14 @@ function ChallengeDetail() {
             <p className="mt-4 text-lg text-muted-foreground">{challenge.brief}</p>
           </div>
 
+          {/* Right: match score + key details + submit button */}
           <div className="lg:col-span-4">
             <div className="surface-paper rounded-2xl p-6">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Your match
                 </span>
+                {/* MatchScore renders a circular percentage indicator */}
                 <MatchScore value={score} />
               </div>
               <dl className="mt-6 space-y-4 text-sm">
@@ -118,6 +163,7 @@ function ChallengeDetail() {
                 {challenge.prize && <Row k="Prize" v={challenge.prize} />}
                 <Row k="Format" v="Async submission · public review" />
               </dl>
+              {/* STATE: Opens SubmitDialog; disabled once the deadline has passed */}
               <button
                 onClick={() => setSubmitOpen(true)}
                 disabled={deadline === 0}
@@ -129,6 +175,7 @@ function ChallengeDetail() {
           </div>
         </header>
 
+        {/* Body: brief, what to submit, required skills, company about */}
         <section className="mt-16 grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-8 space-y-10">
             <Block title="The brief">
@@ -145,6 +192,7 @@ function ChallengeDetail() {
                 <li>Optional: a 2-minute Loom walking through the work</li>
               </ul>
             </Block>
+            {/* DATABASE: Required skills — highlight matched ones for logged-in talent */}
             <Block title="Required skills">
               <div className="flex flex-wrap gap-2">
                 {challenge.required_skills.map((s) => {
@@ -167,6 +215,7 @@ function ChallengeDetail() {
             </Block>
           </div>
 
+          {/* Company about sidebar */}
           <aside className="lg:col-span-4">
             <div className="rounded-2xl border border-border bg-card p-6">
               <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -181,6 +230,9 @@ function ChallengeDetail() {
       </article>
 
       <SiteFooter />
+
+      {/* SubmitDialog overlay — rendered when submitOpen is true */}
+      {/* AUTH: Only rendered if user is logged in */}
       {submitOpen && user && (
         <SubmitDialog
           challenge={challenge}
@@ -192,6 +244,9 @@ function ChallengeDetail() {
   );
 }
 
+// ─── SubmitDialog ─────────────────────────────────────────────────────────────
+// Full-screen overlay for submitting challenge work. Three internal states:
+// "form" → "evaluating" (spinner) → "done" (AI results + success message).
 function SubmitDialog({
   challenge,
   talentId,
@@ -201,18 +256,32 @@ function SubmitDialog({
   talentId: string;
   onClose: () => void;
 }) {
+  // STATE: Which step of the submission flow we're on.
+  // "form" = user filling in details, "evaluating" = AI running, "done" = finished.
   const [step, setStep] = useState<"form" | "evaluating" | "done">("form");
+
+  // STATE: The URL the talent is linking to (GitHub repo, deployed demo, etc.)
   const [url, setUrl] = useState("");
+
+  // STATE: The text write-up explaining the talent's approach.
   const [writeup, setWriteup] = useState("");
+
+  // STATE: True while the upsertSubmission DB call is in flight.
   const [submitting, setSubmitting] = useState(false);
+
+  // STATE: Error message shown in the form if the submission fails.
   const [error, setError] = useState<string | null>(null);
+
+  // STATE: The AI evaluation result returned by Gemini (may be null if AI eval failed).
   const [eval_, setEval] = useState<ChallengeEvalResult | null>(null);
 
+  // DATABASE + API: Saves the submission to Supabase, then requests AI evaluation.
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
+      // DATABASE: Persist the submission record in Supabase.
       await upsertSubmission({
         challenge_id: challenge.id,
         talent_id: talentId,
@@ -220,13 +289,19 @@ function SubmitDialog({
         work_url: url,
         writeup,
       });
+
+      // Show the loading spinner while AI evaluates.
       setStep("evaluating");
+
       try {
+        // API: Call Gemini to evaluate the submission. This is best-effort —
+        // if the AI call fails the submission is still saved successfully.
         const result = await getAIChallengeEval(challenge, { writeup, work_url: url });
         setEval(result);
       } catch {
-        // AI eval failed but submission succeeded — still show done
+        // AI eval failed — silently ignore and proceed to done state.
       }
+
       setStep("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Submission failed. Try again.");
@@ -235,6 +310,7 @@ function SubmitDialog({
     }
   }
 
+  // Maps AI verdict strings to colour class names for the verdict badge.
   const verdictColor: Record<string, string> = {
     shortlist: "bg-primary/10 text-primary",
     consider: "bg-warm text-warm-foreground",
@@ -242,14 +318,17 @@ function SubmitDialog({
   };
 
   return (
+    // Backdrop — clicking it closes the dialog (only in form state).
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-foreground/40 p-4 animate-fade-in"
       onClick={step === "form" ? onClose : undefined}
     >
+      {/* Stop click propagation to prevent the modal from closing when clicking inside */}
       <div
         className="w-full max-w-2xl rounded-2xl bg-background shadow-elevated max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* ── Evaluating step: spinner ── */}
         {step === "evaluating" && (
           <div className="p-10 text-center">
             <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -258,6 +337,7 @@ function SubmitDialog({
           </div>
         )}
 
+        {/* ── Done step: success + AI results ── */}
         {step === "done" && (
           <div className="p-8">
             <div className="text-center">
@@ -266,8 +346,10 @@ function SubmitDialog({
               <p className="mt-1 text-sm text-muted-foreground">Reviewers typically respond within 5 business days.</p>
             </div>
 
+            {/* API: Show AI evaluation results only if the eval succeeded */}
             {eval_ && (
               <div className="mt-8 space-y-5">
+                {/* Score + verdict badge */}
                 <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">AI Score</div>
@@ -278,8 +360,10 @@ function SubmitDialog({
                   </span>
                 </div>
 
+                {/* AI summary paragraph */}
                 <p className="text-sm text-muted-foreground">{eval_.summary}</p>
 
+                {/* Strengths list */}
                 {eval_.strengths.length > 0 && (
                   <div>
                     <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Strengths</div>
@@ -291,6 +375,7 @@ function SubmitDialog({
                   </div>
                 )}
 
+                {/* Improvements list */}
                 {eval_.improvements.length > 0 && (
                   <div>
                     <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">To improve</div>
@@ -302,6 +387,7 @@ function SubmitDialog({
                   </div>
                 )}
 
+                {/* Per-criteria score breakdown grid */}
                 <div className="grid grid-cols-4 gap-2">
                   {Object.entries(eval_.criteria).map(([k, v]) => (
                     <div key={k} className="rounded-lg border border-border bg-paper p-3 text-center">
@@ -322,6 +408,7 @@ function SubmitDialog({
           </div>
         )}
 
+        {/* ── Form step: URL + write-up inputs ── */}
         {step === "form" && (
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div>
@@ -329,6 +416,7 @@ function SubmitDialog({
               <h2 className="mt-1 font-display text-2xl">{challenge.title}</h2>
             </div>
 
+            {/* Work URL field — required, must be a valid URL */}
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Link to your work *</label>
               <input
@@ -342,6 +430,7 @@ function SubmitDialog({
               <p className="mt-1 text-[11px] text-muted-foreground">Repo, Figma file, deployed demo, or recorded walkthrough.</p>
             </div>
 
+            {/* Approach write-up — required, word count shown live */}
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Your approach *</label>
               <textarea
@@ -352,19 +441,23 @@ function SubmitDialog({
                 placeholder="Walk us through your decisions, what you cut, and what you'd do differently with more time. ≤500 words."
                 className={`${inputCls} resize-none`}
               />
+              {/* Live word count indicator */}
               <p className="mt-1 text-[11px] text-muted-foreground">{writeup.split(/\s+/).filter(Boolean).length} / 500 words</p>
             </div>
 
+            {/* AI eval notice */}
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
               ✦ After submission, Gemini AI will instantly score and review your work.
             </div>
 
+            {/* VALIDATION: Error shown if the DB call or submission fails */}
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <div className="flex gap-2 border-t border-border pt-2">
               <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2.5 text-sm hover:bg-accent">
                 Cancel
               </button>
+              {/* STATE: Disabled while submitting to prevent duplicate submissions */}
               <button
                 type="submit"
                 disabled={submitting}
@@ -380,9 +473,12 @@ function SubmitDialog({
   );
 }
 
+// Shared CSS class string for all text inputs/textareas in the dialog.
 const inputCls =
   "w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
 
+// ─── Row ──────────────────────────────────────────────────────────────────────
+// A key-value row in the challenge details card sidebar.
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex items-center justify-between border-b border-border pb-3 last:border-none last:pb-0">
@@ -392,6 +488,8 @@ function Row({ k, v }: { k: string; v: string }) {
   );
 }
 
+// ─── Block ────────────────────────────────────────────────────────────────────
+// Reusable content section with heading and body slot.
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>

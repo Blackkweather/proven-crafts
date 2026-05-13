@@ -1,6 +1,21 @@
+// =============================================================================
+// CAREERS PAGE — src/routes/careers.tsx
+// =============================================================================
+// Static page listing open roles at Skill Network and explaining how the team
+// works and how they hire. No data fetching — all content is defined in the
+// `openings` and `principles` arrays at the top of the file.
+//
+// The hiring process is transparent: 30-min call, paid scoped trial (€600),
+// team day, and a decision within 5 working days. Each open role links to the
+// contact page (individual job pages not yet built). Sets SEO meta tags.
+//
+// KEYWORDS: NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 
+// NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/careers")({
   head: () => ({
     meta: [
@@ -19,6 +34,9 @@ export const Route = createFileRoute("/careers")({
   component: CareersPage,
 });
 
+// List of current open roles. Each item has a unique id, title, team, location,
+// and employment type. Clicking a role links to the contact page as a simple
+// apply-via-email flow (dedicated role pages not yet built).
 const openings = [
   {
     id: "eng-staff",
@@ -50,6 +68,7 @@ const openings = [
   },
 ];
 
+// Three "how we work" principles shown at the bottom of the page.
 const principles = [
   {
     t: "Show, don't tell",
@@ -70,6 +89,7 @@ function CareersPage() {
     <div className="min-h-dvh bg-background">
       <SiteHeader />
 
+      {/* Hero — headline + hiring process sidebar card */}
       <section className="container mx-auto px-6 pb-16 pt-20 lg:pt-28">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-7">
@@ -84,6 +104,7 @@ function CareersPage() {
               table. We hire the way we ask companies to: by reviewing real work.
             </p>
           </div>
+          {/* How we hire: 4-step process shown as an ordered list */}
           <div className="lg:col-span-5">
             <div className="surface-paper rounded-2xl p-6">
               <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -100,11 +121,13 @@ function CareersPage() {
         </div>
       </section>
 
+      {/* Open roles list */}
       <section className="border-y border-border bg-paper">
         <div className="container mx-auto px-6 py-20">
           <h2 className="font-display text-3xl">Open roles</h2>
           <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-background">
             {openings.map((o, i) => (
+              // NAVIGATION: Each role links to the contact page as the apply mechanism.
               <Link
                 key={o.id}
                 to="/contact"
@@ -128,6 +151,7 @@ function CareersPage() {
         </div>
       </section>
 
+      {/* How we work — 3 principles in a grid */}
       <section className="container mx-auto px-6 py-24">
         <h2 className="font-display text-3xl">How we work</h2>
         <div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
@@ -145,6 +169,9 @@ function CareersPage() {
   );
 }
 
+// ─── Li ───────────────────────────────────────────────────────────────────────
+// A numbered list item used in the "how we hire" process card.
+// n = step number, t = step title, b = step description.
 function Li({ n, t, b }: { n: string; t: string; b: string }) {
   return (
     <li className="flex gap-4">

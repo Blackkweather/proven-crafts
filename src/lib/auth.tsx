@@ -180,14 +180,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // AUTH: Check for an existing session (from localStorage / cookie).
     // This restores the session on page refresh without requiring a new login.
+    // For Google OAuth, Supabase embeds tokens in the URL hash — detect that so
+    // PostAuthRedirect fires only on a real OAuth callback, not on every page load.
+    const isOAuthCallback =
+      typeof window !== "undefined" &&
+      (window.location.hash.includes("access_token") ||
+        window.location.hash.includes("error="));
+
     supabase.auth.getSession().then(({ data }) => {
       hydrate(data.session).finally(() => {
         setLoading(false);
         initialLoadDone.current = true;
 
-        // AUTH: If a session exists after the initial load (e.g. returning from
-        // Google OAuth redirect), treat it as a fresh sign-in so PostAuthRedirect fires.
-        if (data.session?.user) {
+        // Only treat this as a fresh sign-in when returning from an OAuth redirect.
+        // Plain page refreshes with an existing session must NOT trigger PostAuthRedirect
+        // or the user would be bounced to their dashboard on every reload.
+        if (data.session?.user && isOAuthCallback) {
           setFreshSignIn(true);
         }
       });

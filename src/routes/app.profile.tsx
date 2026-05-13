@@ -124,7 +124,16 @@ function ProfilePage() {
   }
 
   if (loading || !profile) {
-    return <div className="text-sm text-muted-foreground">Loading profile…</div>;
+    return (
+      <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-8">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-40 rounded-2xl bg-muted animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 rounded-2xl bg-muted animate-pulse" />
+      </div>
+    );
   }
 
   const initials =

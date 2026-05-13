@@ -1,6 +1,39 @@
+// =============================================================================
+// COMPANY ONBOARDING WIZARD — src/routes/onboarding.company.tsx
+// =============================================================================
+// 5-step onboarding wizard for new company accounts. Runs immediately after
+// signup (before the user can access /company). Collects the minimum information
+// needed to build a company profile and start hiring on the platform.
+//
+// Step 1 — Company: Name, industry, team size, HQ location, website
+// Step 2 — Goals: Engagement types (full-time / contract / freelance / challenges)
+//           + an optional "what are you building?" description
+// Step 3 — Stack: Tech skill requirements using a 3-state cycle per skill:
+//           unselected → must-have (⭐) → nice-to-have (✓) → unselected
+// Step 4 — Budget: Salary bands (per seniority), project budgets, challenge prizes
+//           Only shows the relevant section based on engagement types from Step 2
+// Step 5 — Culture: Interview rounds, decision timeline, remote policy, and
+//           up to 3 priorities. Ends with a readiness confirmation message.
+//
+// On completion: saves data via `upsertCompanyOnboarding`, marks onboarding
+// complete via `completeOnboarding`, refreshes the auth token, and navigates
+// to /company.
+//
+// IMPORTANT: Uses `supabase.auth.getUser()` directly (not the auth context
+// profile) to avoid a race condition where the profile hasn't loaded yet
+// immediately after email/password signup.
+//
+// DATA FLOW:
+//   - `upsertCompanyOnboarding(userId, data)` — writes company profile fields
+//   - `completeOnboarding(userId)` — flips the onboarding_complete flag
+//   - `auth.refresh()` — updates the auth context before navigation
+// KEYWORDS: AUTH, DATABASE, STATE, VALIDATION, NAVIGATION
+// =============================================================================
+
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { upsertCompanyOnboarding, completeOnboarding } from "@/lib/db";
+// Direct Supabase client — needed to call getUser() and avoid auth context race condition.
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2,
@@ -28,12 +61,14 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
+// NAVIGATION: Route definition for "/onboarding/company".
 export const Route = createFileRoute("/onboarding/company")({
   component: CompanyOnboarding,
 });
 
 // ─── Step metadata ────────────────────────────────────────────────────────────
-
+// Each step has an icon, a sidebar label, a content heading, and a motivational
+// insight shown in the left panel. These drive the sidebar step list and headings.
 const STEP_META = [
   {
     Icon: Building2,
@@ -67,6 +102,7 @@ const STEP_META = [
   },
 ];
 
+// Static platform stats shown in the left sidebar to build confidence.
 const PLATFORM_STATS = [
   "12,000+ verified developers",
   "340+ companies hired this month",
@@ -74,7 +110,7 @@ const PLATFORM_STATS = [
 ];
 
 // ─── Company data ─────────────────────────────────────────────────────────────
-
+// Industry options shown as a grid on Step 1.
 const INDUSTRIES = [
   "Software / SaaS",
   "Fintech",
@@ -91,6 +127,7 @@ const INDUSTRIES = [
   "Other",
 ];
 
+// Team size options with a descriptive stage label (e.g. "Seed", "Series A").
 const COMPANY_SIZES = [
   { v: "1-10", label: "1–10", desc: "Seed" },
   { v: "11-50", label: "11–50", desc: "Series A" },
@@ -99,6 +136,7 @@ const COMPANY_SIZES = [
   { v: "500+", label: "500+", desc: "Enterprise" },
 ];
 
+// The four types of talent engagement a company can use on the platform.
 const ENGAGEMENT_TYPES = [
   {
     v: "fulltime",
@@ -127,7 +165,8 @@ const ENGAGEMENT_TYPES = [
 ];
 
 // ─── Skill data ───────────────────────────────────────────────────────────────
-
+// Same category structure as the talent onboarding. Companies mark skills as
+// "must-have" or "nice-to-have" using the cycleSkill pattern.
 const SKILL_CATEGORIES: { label: string; Icon: React.ElementType; skills: string[] }[] = [
   {
     label: "Frontend",
@@ -163,20 +202,25 @@ const SKILL_CATEGORIES: { label: string; Icon: React.ElementType; skills: string
 ];
 
 // ─── Budget data ──────────────────────────────────────────────────────────────
-
+// Salary band options grouped by seniority level. Only shown if the company
+// selected full-time or contract engagement types in Step 2.
 const SALARY_BANDS = [
   { role: "Junior", ranges: ["< €30k", "€30–50k", "€50–60k"] },
   { role: "Mid-level", ranges: ["€50–70k", "€70–90k", "€90–110k"] },
   { role: "Senior", ranges: ["€90–120k", "€120–150k", "> €150k"] },
 ];
 
+// Budget ranges for freelance projects. Only shown if freelance was selected.
 const PROJECT_BUDGETS = ["< €1k", "€1–5k", "€5–15k", "€15–30k", "€30–60k", "> €60k", "Varies"];
+
+// Prize options for skill challenges. Only shown if challenges was selected.
 const CHALLENGE_PRIZES = ["No prize", "€100–500", "€500–1k", "€1–5k", "> €5k", "Job offer", "Mix"];
 
 // ─── Culture data ─────────────────────────────────────────────────────────────
-
 const INTERVIEW_ROUNDS = ["1 round", "2–3 rounds", "4+ rounds", "Async / challenge-based"];
 const DECISION_TIMELINES = ["Within a week", "2–4 weeks", "1–2 months", "Flexible"];
+
+// Up to 3 of these can be selected as the company's top hiring priorities.
 const PRIORITIES = [
   "Portfolio & past work",
   "Skills match",
@@ -189,56 +233,80 @@ const PRIORITIES = [
 // ─── Root component ───────────────────────────────────────────────────────────
 
 function CompanyOnboarding() {
+  // AUTH: Used to access the company's display name and to call `refresh()` after saving.
   const auth = useAuth();
   const { profile } = auth;
+
+  // NAVIGATION: Navigate to /company after onboarding completes.
   const router = useRouter();
+
+  // STATE: Which step (1–5) we are on.
   const [step, setStep] = useState(1);
+
+  // STATE: True while the final save operation is in progress.
   const [saving, setSaving] = useState(false);
+
+  // STATE: Error message shown in the footer if the save fails.
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Step 1
+  // STATE — Step 1: Company identity fields.
   const [companyName, setCompanyName] = useState(profile?.display_name ?? "");
   const [industry, setIndustry] = useState("");
   const [size, setSize] = useState("");
   const [hqLocation, setHqLocation] = useState("");
   const [website, setWebsite] = useState("");
-  // Step 2
+
+  // STATE — Step 2: Engagement types and optional "what you're building" description.
   const [engagementTypes, setEngagementTypes] = useState<string[]>([]);
   const [description, setDescription] = useState("");
-  // Step 3
+
+  // STATE — Step 3: Required and nice-to-have skills.
+  // mustHave = skills that are absolutely required for the role.
+  // niceToHave = skills that are preferred but not blockers.
   const [mustHave, setMustHave] = useState<string[]>([]);
   const [niceToHave, setNiceToHave] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState(0);
-  // Step 4
+
+  // STATE — Step 4: Budget preferences.
+  // salaryBands: { "Junior": "€50–60k", "Senior": "> €150k", ... }
   const [salaryBands, setSalaryBands] = useState<Record<string, string>>({});
   const [projectBudget, setProjectBudget] = useState("");
   const [challengePrize, setChallengePrize] = useState("");
-  // Step 5
+
+  // STATE — Step 5: Culture and process preferences.
   const [interviewRounds, setInterviewRounds] = useState("");
   const [timeline, setTimeline] = useState("");
   const [priorities, setPriorities] = useState<string[]>([]);
   const [remoteFriendly, setRemoteFriendly] = useState("");
 
+  // VALIDATION: Returns true only if the current step has the minimum required data.
+  // Used to enable/disable the "Continue" button.
   function canContinue() {
-    if (step === 1) return !!companyName && !!industry && !!size;
-    if (step === 2) return engagementTypes.length > 0;
-    if (step === 3) return mustHave.length > 0;
-    return true;
+    if (step === 1) return !!companyName && !!industry && !!size; // Name + industry + size required
+    if (step === 2) return engagementTypes.length > 0;           // At least one engagement type
+    if (step === 3) return mustHave.length > 0;                  // At least one must-have skill
+    return true; // Steps 4 and 5 are fully optional
   }
 
+  // DATABASE + AUTH + NAVIGATION: Save all collected data to Supabase and navigate to /company.
   async function done() {
     setSaving(true);
     setSaveError(null);
-    // Use getUser() directly to avoid a race condition where profile context
-    // hasn't loaded yet (e.g. right after email/password signup).
+
+    // AUTH: Use getUser() directly to avoid a race condition where the auth context
+    // profile hasn't loaded yet (e.g. immediately after email/password signup).
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user?.id) {
+      // AUTH: No session found — redirect to login.
       router.navigate({ to: "/login" });
       return;
     }
+
     try {
+      // DATABASE: Write the company profile data to Supabase.
+      // company_initials is auto-generated from the first letters of each word in companyName.
       await upsertCompanyOnboarding(user.id, {
         company_name: companyName,
         company_initials: companyName
@@ -252,8 +320,11 @@ function CompanyOnboarding() {
         company_about: description,
         location: hqLocation,
       });
+      // DATABASE: Mark onboarding as complete.
       await completeOnboarding(user.id);
+      // AUTH: Refresh the auth session so the context picks up the updated profile.
       await auth.refresh();
+      // NAVIGATION: Send the user to their company dashboard.
       router.navigate({ to: "/company" });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -262,12 +333,13 @@ function CompanyOnboarding() {
   }
 
   const isLast = step === STEP_META.length;
-  const meta = STEP_META[step - 1];
+  const meta = STEP_META[step - 1]; // Current step's metadata (icon, title, insight)
 
   return (
     <div className="flex min-h-dvh">
-      {/* ── Left panel ── */}
+      {/* ── Left panel — sidebar with step list, insight, and platform stats ── */}
       <aside className="hidden lg:flex w-[340px] shrink-0 flex-col justify-between bg-foreground px-10 py-12 text-background sticky top-0 h-dvh overflow-hidden">
+        {/* Logo — links back to the landing page */}
         <Link to="/" className="flex items-center gap-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-background/10 ring-1 ring-background/20">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -279,13 +351,15 @@ function CompanyOnboarding() {
           <span className="font-display text-xl">Skill Network</span>
         </Link>
 
+        {/* Step list — shows all 5 steps with done/active/future visual states */}
         <nav className="space-y-1">
           {STEP_META.map((s, i) => {
             const num = i + 1;
-            const done = num < step;
-            const active = num === step;
+            const done = num < step;   // Steps before current are marked done
+            const active = num === step; // Current step is highlighted
             return (
               <div key={num} className="flex gap-4">
+                {/* Circle + connector line column */}
                 <div className="flex flex-col items-center">
                   <div
                     className={
@@ -299,6 +373,7 @@ function CompanyOnboarding() {
                   >
                     {done ? <Check size={13} strokeWidth={2.5} /> : num}
                   </div>
+                  {/* Vertical connector line between step circles */}
                   {i < STEP_META.length - 1 && (
                     <div
                       className={
@@ -308,6 +383,7 @@ function CompanyOnboarding() {
                     />
                   )}
                 </div>
+                {/* Step label + subtitle (only shown for the active step) */}
                 <div className="pb-6">
                   <div
                     className={
@@ -332,6 +408,7 @@ function CompanyOnboarding() {
           })}
         </nav>
 
+        {/* Insight quote + platform stats */}
         <div className="space-y-6">
           <div className="rounded-xl bg-background/[0.06] p-4 ring-1 ring-background/10">
             <meta.Icon size={16} className="mb-2 text-background/50" />
@@ -348,8 +425,9 @@ function CompanyOnboarding() {
         </div>
       </aside>
 
-      {/* ── Right panel ── */}
+      {/* ── Right panel — main content area ── */}
       <div className="flex flex-1 flex-col">
+        {/* Mobile top bar — only visible on small screens */}
         <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4 lg:hidden">
           <Link to="/" className="flex items-center gap-2">
             <span className="grid h-7 w-7 place-items-center rounded-md bg-foreground text-background">
@@ -366,6 +444,7 @@ function CompanyOnboarding() {
           </span>
         </div>
 
+        {/* Progress bar */}
         <div className="h-0.5 bg-border">
           <div
             className="h-full bg-primary transition-all duration-700 ease-out"
@@ -373,8 +452,10 @@ function CompanyOnboarding() {
           />
         </div>
 
+        {/* Step content area — scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-10 lg:px-16 lg:py-14">
           <div className="mx-auto max-w-lg">
+            {/* Step heading */}
             <div className="mb-10">
               <div className="mb-3 flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -387,6 +468,7 @@ function CompanyOnboarding() {
               <h1 className="font-display text-4xl leading-tight text-balance">{meta.title}</h1>
             </div>
 
+            {/* Step body — each step renders its own sub-component */}
             <div key={step} className="animate-fade-up">
               {step === 1 && (
                 <Step1Basics
@@ -448,13 +530,16 @@ function CompanyOnboarding() {
           </div>
         </div>
 
+        {/* Sticky bottom navigation bar */}
         <div className="sticky bottom-0 border-t border-border bg-background/95 px-6 py-4 backdrop-blur-sm lg:px-16">
+          {/* STATE: Save error shown above the nav buttons */}
           {saveError && (
             <p className="mx-auto mb-3 max-w-lg rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
               {saveError}
             </p>
           )}
           <div className="mx-auto flex max-w-lg items-center justify-between">
+            {/* Back button — disabled on step 1 */}
             <button
               type="button"
               onClick={() => setStep((s) => s - 1)}
@@ -465,6 +550,7 @@ function CompanyOnboarding() {
               Back
             </button>
             <div className="flex flex-col items-center gap-1.5">
+              {/* VALIDATION: Continue — disabled until canContinue() returns true */}
               {!isLast ? (
                 <button
                   type="button"
@@ -476,6 +562,7 @@ function CompanyOnboarding() {
                   <ArrowRight size={15} />
                 </button>
               ) : (
+                // DATABASE + NAVIGATION: Final "Start hiring" button on step 5
                 <button
                   type="button"
                   onClick={done}
@@ -486,6 +573,7 @@ function CompanyOnboarding() {
                   {!saving && <ArrowRight size={15} />}
                 </button>
               )}
+              {/* Skip link for optional steps */}
               {!isLast && (
                 <button
                   type="button"
@@ -504,7 +592,8 @@ function CompanyOnboarding() {
 }
 
 // ─── Step 1: Company basics ───────────────────────────────────────────────────
-
+// Collects company name (required), industry (required), team size (required),
+// HQ location (optional), and website (optional).
 function Step1Basics({
   companyName,
   setCompanyName,
@@ -528,6 +617,7 @@ function Step1Basics({
   website: string;
   setWebsite: (v: string) => void;
 }) {
+  // Shared CSS class for plain text inputs in this step.
   const inputCls =
     "w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors";
 
@@ -538,7 +628,7 @@ function Step1Basics({
       </p>
 
       <div className="space-y-4">
-        {/* Company name */}
+        {/* Company name text input */}
         <label className="block">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Company name
@@ -551,7 +641,7 @@ function Step1Basics({
           />
         </label>
 
-        {/* Industry */}
+        {/* Industry — 2–3 column grid of toggle buttons */}
         <div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Industry
@@ -576,7 +666,7 @@ function Step1Basics({
           </div>
         </div>
 
-        {/* Team size */}
+        {/* Team size — 5-column grid with stage labels */}
         <div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Team size
@@ -608,7 +698,7 @@ function Step1Basics({
           </div>
         </div>
 
-        {/* Location + website */}
+        {/* HQ location + website — side by side with icon prefix */}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex items-center gap-2.5 rounded-lg border border-input bg-card px-3.5 py-2.5 has-[:focus]:border-primary has-[:focus]:ring-2 has-[:focus]:ring-primary/20 transition-colors cursor-text">
             <MapPin size={15} className="shrink-0 text-muted-foreground" />
@@ -635,7 +725,8 @@ function Step1Basics({
 }
 
 // ─── Step 2: Goals / Engagement types ────────────────────────────────────────
-
+// Multi-select card grid for the 4 engagement types + an optional text description.
+// At least one engagement type is required to continue to step 3.
 function Step2Goals({
   engagementTypes,
   setEngagementTypes,
@@ -647,6 +738,7 @@ function Step2Goals({
   description: string;
   setDescription: (v: string) => void;
 }) {
+  // Toggle an engagement type on/off.
   function toggle(v: string) {
     setEngagementTypes(
       engagementTypes.includes(v)
@@ -661,6 +753,7 @@ function Step2Goals({
         Select everything that applies. You can run multiple hiring modes in parallel.
       </p>
 
+      {/* 2-column card grid for engagement types */}
       <div className="grid gap-3 sm:grid-cols-2">
         {ENGAGEMENT_TYPES.map(({ v, Icon, title, desc }) => {
           const active = engagementTypes.includes(v);
@@ -676,6 +769,7 @@ function Step2Goals({
                   : "border-border bg-card text-foreground hover:border-primary/40 hover:shadow-soft")
               }
             >
+              {/* Checkmark badge in top-right when active */}
               {active && (
                 <span className="absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full bg-primary-foreground/20">
                   <Check size={11} strokeWidth={2.5} />
@@ -705,6 +799,7 @@ function Step2Goals({
         })}
       </div>
 
+      {/* Optional "what are you building" textarea */}
       <label className="block">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           What are you building?{" "}
@@ -723,7 +818,8 @@ function Step2Goals({
 }
 
 // ─── Step 3: Tech stack ───────────────────────────────────────────────────────
-
+// Three-state skill cycling: unselected → must-have (⭐) → nice-to-have (✓) → unselected.
+// At least one must-have skill is required to continue.
 function Step3Stack({
   mustHave,
   setMustHave,
@@ -739,17 +835,22 @@ function Step3Stack({
   activeCategory: number;
   setActiveCategory: (i: number) => void;
 }) {
+  // Three-state cycle: unselected → must-have → nice-to-have → unselected.
   function cycleSkill(skill: string) {
     if (mustHave.includes(skill)) {
+      // Transition: must-have → nice-to-have
       setMustHave(mustHave.filter((x) => x !== skill));
       setNiceToHave([...niceToHave, skill]);
     } else if (niceToHave.includes(skill)) {
+      // Transition: nice-to-have → unselected (remove entirely)
       setNiceToHave(niceToHave.filter((x) => x !== skill));
     } else {
+      // Transition: unselected → must-have
       setMustHave([...mustHave, skill]);
     }
   }
 
+  // Returns the current state of a skill.
   function state(skill: string): "must" | "nice" | null {
     if (mustHave.includes(skill)) return "must";
     if (niceToHave.includes(skill)) return "nice";
@@ -761,6 +862,7 @@ function Step3Stack({
 
   return (
     <div className="space-y-6">
+      {/* Legend explaining the 3-state cycling behaviour */}
       <div>
         <p className="text-sm text-muted-foreground">
           Click once for <strong>must-have</strong>, twice for <strong>nice-to-have</strong>, three
@@ -777,7 +879,7 @@ function Step3Stack({
         </div>
       </div>
 
-      {/* Category tabs */}
+      {/* Category tab pills */}
       <div className="flex flex-wrap gap-1.5">
         {SKILL_CATEGORIES.map((c, i) => (
           <button
@@ -797,7 +899,7 @@ function Step3Stack({
         ))}
       </div>
 
-      {/* Skill chips */}
+      {/* Skill chips for the active category */}
       <div className="flex flex-wrap gap-2">
         {cat.skills.map((skill) => {
           const s = state(skill);
@@ -823,6 +925,7 @@ function Step3Stack({
         })}
       </div>
 
+      {/* Summary panel showing all selected must-have + nice-to-have skills */}
       {total > 0 && (
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
@@ -855,7 +958,10 @@ function Step3Stack({
 }
 
 // ─── Step 4: Budget ───────────────────────────────────────────────────────────
-
+// Shows salary band selectors only if "fulltime" or "contract" engagement type was selected.
+// Shows project budget selectors only if "freelance" was selected.
+// Shows challenge prize selectors only if "challenges" was selected.
+// All sections are optional — the user can skip this step entirely.
 function Step4Budget({
   engagementTypes,
   salaryBands,
@@ -873,10 +979,12 @@ function Step4Budget({
   challengePrize: string;
   setChallengePrize: (v: string) => void;
 }) {
+  // Determine which budget sections to show based on engagement types from Step 2.
   const wantsHiring = engagementTypes.includes("fulltime") || engagementTypes.includes("contract");
   const wantsFreelance = engagementTypes.includes("freelance");
   const wantsChallenges = engagementTypes.includes("challenges");
 
+  // Reusable chip CSS class.
   function chipCls(active: boolean) {
     return (
       "rounded-lg border px-3 py-2 text-sm font-medium transition-all " +
@@ -892,6 +1000,7 @@ function Step4Budget({
         Honest ranges attract better candidates and cut time-to-hire significantly.
       </p>
 
+      {/* Salary bands — only shown for full-time / contract hiring */}
       {wantsHiring && (
         <div>
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
@@ -933,6 +1042,7 @@ function Step4Budget({
         </div>
       )}
 
+      {/* Project budget — only shown for freelance hiring */}
       {wantsFreelance && (
         <div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
@@ -953,6 +1063,7 @@ function Step4Budget({
         </div>
       )}
 
+      {/* Challenge prize — only shown for skill challenge hiring */}
       {wantsChallenges && (
         <div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
@@ -977,7 +1088,8 @@ function Step4Budget({
 }
 
 // ─── Step 5: Culture ──────────────────────────────────────────────────────────
-
+// Collects interview rounds, decision timeline, remote policy, and up to 3
+// hiring priorities. Ends with a readiness confirmation message.
 function Step5Culture({
   interviewRounds,
   setInterviewRounds,
@@ -997,18 +1109,20 @@ function Step5Culture({
   setPriorities: (v: string[]) => void;
   remoteFriendly: string;
   setRemoteFriendly: (v: string) => void;
-  companyName: string;
+  companyName: string; // Used in the readiness confirmation message
 }) {
+  // Toggle a priority on/off — max 3 can be selected at once.
   function togglePriority(p: string) {
     setPriorities(
       priorities.includes(p)
         ? priorities.filter((x) => x !== p)
         : priorities.length < 3
           ? [...priorities, p]
-          : priorities,
+          : priorities, // Silently ignore if already at 3
     );
   }
 
+  // Reusable chip CSS class.
   function chipCls(active: boolean) {
     return (
       "rounded-lg border px-3.5 py-2 text-sm font-medium transition-all " +
@@ -1024,6 +1138,7 @@ function Step5Culture({
         Transparency in how you hire builds trust before the first conversation.
       </p>
 
+      {/* Interview rounds — single select */}
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Interview rounds
@@ -1042,6 +1157,7 @@ function Step5Culture({
         </div>
       </div>
 
+      {/* Decision timeline — single select */}
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Decision timeline
@@ -1060,6 +1176,7 @@ function Step5Culture({
         </div>
       </div>
 
+      {/* Remote policy — single select */}
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Remote policy
@@ -1078,6 +1195,7 @@ function Step5Culture({
         </div>
       </div>
 
+      {/* Hiring priorities — multi-select, max 3 */}
       <div>
         <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           What matters most?{" "}
@@ -1089,6 +1207,7 @@ function Step5Culture({
               key={p}
               type="button"
               onClick={() => togglePriority(p)}
+              // STATE: Disabled if 3 are already selected and this one isn't one of them.
               disabled={!priorities.includes(p) && priorities.length >= 3}
               className={
                 "flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-medium transition-all disabled:opacity-40 " +
@@ -1104,6 +1223,7 @@ function Step5Culture({
         </div>
       </div>
 
+      {/* Readiness confirmation message */}
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
         <p className="text-sm font-medium text-foreground">
           {companyName ? `${companyName} is` : "Your company is"} ready to source talent — through

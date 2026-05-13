@@ -56,8 +56,9 @@ function createSupabaseClient() {
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
-      // Store the session in localStorage so the user stays logged in after refreshing
-      storage: typeof window !== "undefined" ? localStorage : undefined,
+      // Use sessionStorage so the token is cleared when the browser/tab closes
+      // and is not permanently visible in Application → Local Storage
+      storage: typeof window !== "undefined" ? sessionStorage : undefined,
       persistSession: true,
       // Automatically refresh the JWT before it expires (every ~55 minutes)
       autoRefreshToken: true,

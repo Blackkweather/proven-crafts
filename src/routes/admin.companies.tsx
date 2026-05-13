@@ -46,16 +46,21 @@ function AdminCompanies() {
     };
   }, []);
 
+  if (loading) return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="h-44 rounded-2xl bg-muted animate-pulse" />
+      ))}
+    </div>
+  );
+
   return (
     <div>
       <p className="text-sm text-muted-foreground">
-        {loading ? "Loading…" : `${companies.length} active companies on the network`}
+        {`${companies.length} active companies on the network`}
       </p>
 
-      {loading && <div className="mt-6 text-sm text-muted-foreground">Loading companies…</div>}
-
-      {!loading && (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
           {companies.map((c) => {
             const cJobs = jobs.filter((j) => j.company_id === c.id).length;
             const cCh = challenges.filter((ch) => ch.company_id === c.id).length;
@@ -107,7 +112,6 @@ function AdminCompanies() {
             </p>
           )}
         </div>
-      )}
     </div>
   );
 }

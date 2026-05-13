@@ -11,12 +11,14 @@ type UserRow = Profile & { suspended: boolean };
 function AdminUsers() {
   const [people, setPeople] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [suspending, setSuspending] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
     fetchAllUsers()
       .then((users) => {
         if (!cancelled) {
@@ -28,8 +30,11 @@ function AdminUsers() {
         }
       })
       .catch((err) => {
-        if (!cancelled)
-          console.error("Failed to load users:", err instanceof Error ? err.message : String(err));
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("Failed to load users:", msg);
+          setLoadError(msg);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -70,11 +75,25 @@ function AdminUsers() {
       .join("")
       .toUpperCase();
 
+  if (loading) return (
+    <div className="space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />
+      ))}
+    </div>
+  );
+
+  if (loadError) return (
+    <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+      Failed to load users: {loadError}. Please refresh.
+    </div>
+  );
+
   return (
     <div>
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {loading ? "Loading…" : `${people.length} talent profiles`}
+          {`${people.length} talent profiles`}
         </p>
         <input
           value={q}
@@ -93,16 +112,11 @@ function AdminUsers() {
           <div>Action</div>
         </div>
 
-        {loading && (
-          <div className="px-5 py-8 text-center text-sm text-muted-foreground">Loading users…</div>
-        )}
-
-        {!loading && filtered.length === 0 && (
+        {filtered.length === 0 && (
           <div className="px-5 py-8 text-center text-sm text-muted-foreground">No users found.</div>
         )}
 
-        {!loading &&
-          filtered.map((p, i) => (
+        {filtered.map((p, i) => (
             <div
               key={p.id}
               className={

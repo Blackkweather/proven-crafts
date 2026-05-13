@@ -16,7 +16,13 @@ function JobsPanel() {
   const companyJobs = jobs.filter((j) => j.company_id === user?.id);
   const [creating, setCreating] = useState(false);
 
-  if (loading) return <div className="text-sm text-muted-foreground">Loading roles…</div>;
+  if (loading) return (
+    <div className="space-y-3">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div>
@@ -31,6 +37,14 @@ function JobsPanel() {
           + New role
         </button>
       </div>
+
+      {companyJobs.length === 0 && (
+        <div className="mt-8 flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-dashed border-border">
+          <div className="text-4xl mb-4">📋</div>
+          <h3 className="font-display text-lg">No open roles yet</h3>
+          <p className="text-sm text-muted-foreground mt-1">Post your first role to start receiving applications.</p>
+        </div>
+      )}
 
       <div className="mt-6 space-y-3">
         {companyJobs.map((j) => (

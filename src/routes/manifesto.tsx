@@ -1,6 +1,29 @@
+// =============================================================================
+// MANIFESTO PAGE — src/routes/manifesto.tsx
+// =============================================================================
+// Long-form editorial article explaining the philosophy behind Skill Network.
+// Why was the platform built? What's wrong with the current hiring system?
+// What does the team believe? This is fully static content — no data fetching,
+// no user-specific rendering. It reads like a published essay.
+//
+// Structure:
+//   - Headline + intro paragraph
+//   - Section 1: The problem (resumes are bad signals)
+//   - Pull quote
+//   - Section 2: What we actually believe (3 principles: 01, 02, 03)
+//   - Dark contrast band (mission statement)
+//   - Section 3: Who this is for
+//   - Stats interlude (3 data points)
+//   - Section 4: What we're building toward
+//   - Letter-style closing with CTAs
+//
+// KEYWORDS: NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 
+// NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/manifesto")({
   head: () => ({
     meta: [
@@ -20,23 +43,24 @@ function Manifesto() {
       <SiteHeader />
 
       <article className="container mx-auto max-w-3xl px-6 pb-32 pt-20">
-        {/* Kicker */}
+        {/* Kicker — small label at the top */}
         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Manifesto · 2026
         </div>
 
-        {/* Title */}
+        {/* Main headline */}
         <h1 className="mt-4 font-display text-5xl leading-[1.08] md:text-6xl lg:text-7xl">
           The resume is
           <br />a bad product.
         </h1>
 
+        {/* Introduction paragraph */}
         <p className="mt-8 text-xl leading-relaxed text-muted-foreground max-w-2xl">
           We built Skill Network because we've been on both sides of a broken system — and we got
           tired of it.
         </p>
 
-        {/* Section 1 */}
+        {/* Section 1: The problem with the current hiring signal */}
         <section className="mt-16 space-y-6 text-lg leading-relaxed text-foreground/85">
           <h2 className="font-display text-3xl text-foreground">
             The problem isn't effort. It's the signal.
@@ -57,14 +81,14 @@ function Manifesto() {
           </p>
         </section>
 
-        {/* Pull quote */}
+        {/* Pull quote — blockquote styled with a left border */}
         <blockquote className="my-16 border-l-2 border-foreground pl-8">
           <p className="font-display text-2xl leading-snug text-foreground md:text-3xl">
             "Work is a better signal than a document about work. This is obvious. And yet."
           </p>
         </blockquote>
 
-        {/* Section 2 */}
+        {/* Section 2: Core beliefs — three numbered principles */}
         <section className="space-y-6 text-lg leading-relaxed text-foreground/85">
           <h2 className="font-display text-3xl text-foreground">What we actually believe.</h2>
           <p>We started from three small, unfashionable ideas:</p>
@@ -98,7 +122,7 @@ function Manifesto() {
           </div>
         </section>
 
-        {/* Dark contrast band */}
+        {/* Dark contrast mission statement band */}
         <div className="my-16 rounded-2xl bg-foreground p-10 text-background">
           <h2 className="font-display text-3xl leading-snug">
             We are not trying to make hiring faster.
@@ -112,7 +136,7 @@ function Manifesto() {
           </p>
         </div>
 
-        {/* Section 3 */}
+        {/* Section 3: Who this is for */}
         <section className="space-y-6 text-lg leading-relaxed text-foreground/85">
           <h2 className="font-display text-3xl text-foreground">Who this is for.</h2>
           <p>
@@ -131,7 +155,7 @@ function Manifesto() {
           </p>
         </section>
 
-        {/* Stats interlude */}
+        {/* Stats interlude — three data points displayed in a grid */}
         <div className="my-16 grid gap-px rounded-2xl border border-border overflow-hidden sm:grid-cols-3">
           {[
             { v: "94%", label: "of companies report better fit vs. prior process" },
@@ -145,7 +169,7 @@ function Manifesto() {
           ))}
         </div>
 
-        {/* Section 4 */}
+        {/* Section 4: What we're building toward */}
         <section className="space-y-6 text-lg leading-relaxed text-foreground/85">
           <h2 className="font-display text-3xl text-foreground">What we're building toward.</h2>
           <p>
@@ -162,18 +186,20 @@ function Manifesto() {
           </p>
         </section>
 
-        {/* Letter-style closing */}
+        {/* Letter-style closing with dual CTAs */}
         <div className="mt-20 border-t border-border pt-10 space-y-3 text-foreground/85">
           <p className="text-lg leading-relaxed">
             If this is how you want to hire, or how you want to be hired — come in.
           </p>
           <div className="flex flex-wrap gap-3 mt-6">
+            {/* NAVIGATION: Link to the talent marketing page */}
             <Link
               to="/talent"
               className="rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:bg-foreground/90"
             >
               I'm looking for work →
             </Link>
+            {/* NAVIGATION: Link to the companies marketing page */}
             <Link
               to="/companies"
               className="rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium hover:bg-accent"

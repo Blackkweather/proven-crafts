@@ -19,6 +19,7 @@ function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -27,8 +28,11 @@ function MatchesPage() {
       .then((rows) => {
         if (!cancelled) setMatches(rows);
       })
-      .catch(() => {
-        if (!cancelled) setMatches([]);
+      .catch((err) => {
+        if (!cancelled) {
+          setMatches([]);
+          setError(err instanceof Error ? err.message : "Failed to load matches.");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -57,7 +61,21 @@ function MatchesPage() {
   const declined = matches.filter((m) => m.status === "declined");
 
   if (loading) {
-    return <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>;
+    return (
+      <div className="space-y-4 max-w-2xl">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+        Failed to load matches. Please refresh.
+      </div>
+    );
   }
 
   return (

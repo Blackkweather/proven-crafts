@@ -28,7 +28,13 @@ function ApplicationsPage() {
   const { submissions, loading: subsLoading } = useMySubmissions(user?.id);
 
   const loading = appsLoading || subsLoading;
-  if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
+  if (loading) return (
+    <div className="space-y-4">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="max-w-3xl space-y-12">

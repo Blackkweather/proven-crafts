@@ -1,8 +1,28 @@
+// =============================================================================
+// CONTACT PAGE — src/routes/contact.tsx
+// =============================================================================
+// Public contact form page. Anyone can reach out to the Skill Network team
+// regarding hiring, press inquiries, partnerships, or anything else. The form
+// is submitted to the database (for admin review) and an async notification
+// email is fired in the background.
+//
+// The page has two states:
+//   1. Form state — the user fills in name, email, company, topic, and message
+//   2. Sent state — a confirmation is shown after a successful submission
+//
+// DATA FLOW:
+//   - `submitContact(payload)` — saves the contact form submission to Supabase
+//   - `notifyContactSubmission(payload)` — fires a notification (email/webhook)
+//     as a fire-and-forget operation; failure is silently ignored
+// KEYWORDS: DATABASE, STATE, VALIDATION
+// =============================================================================
+
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { submitContact, notifyContactSubmission } from "@/lib/db";
 
+// NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
@@ -22,17 +42,25 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
+  // STATE: True after the form has been successfully submitted.
   const [sent, setSent] = useState(false);
+
+  // STATE: True while the submitContact API call is in flight.
   const [loading, setLoading] = useState(false);
+
+  // STATE: Error message shown if the submission fails.
   const [error, setError] = useState<string | null>(null);
+
+  // STATE: All form field values grouped into a single object for convenience.
   const [form, setForm] = useState({
     name: "",
     email: "",
-    company: "",
-    topic: "Hiring",
+    company: "",   // Optional field
+    topic: "Hiring", // Default selection
     message: "",
   });
 
+  // DATABASE: Submits the form to Supabase and fires a background notification.
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -41,11 +69,14 @@ function ContactPage() {
       const payload = {
         name: form.name,
         email: form.email,
-        company: form.company || undefined,
+        company: form.company || undefined, // Send as undefined if empty
         topic: form.topic,
         message: form.message,
       };
+      // DATABASE: Persist the contact form submission.
       await submitContact(payload);
+      // DATABASE: Fire the notification in the background.
+      // .catch(() => {}) ensures a notification failure doesn't block the UX.
       notifyContactSubmission(payload).catch(() => {});
       setSent(true);
     } catch (err) {
@@ -60,6 +91,7 @@ function ContactPage() {
       <SiteHeader />
 
       <section className="container mx-auto grid gap-16 px-6 pb-24 pt-20 lg:grid-cols-12 lg:pt-28">
+        {/* Left column: info + direct contact details */}
         <div className="lg:col-span-5">
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Contact
@@ -70,6 +102,7 @@ function ContactPage() {
             our team will read it.
           </p>
 
+          {/* Direct contact email/address items */}
           <div className="mt-10 space-y-6">
             <ContactItem label="Hiring" detail="hire@skillnetwork.work" />
             <ContactItem label="Press" detail="press@skillnetwork.work" />
@@ -78,8 +111,10 @@ function ContactPage() {
           </div>
         </div>
 
+        {/* Right column: the contact form (or success state) */}
         <div className="lg:col-span-7">
           <div className="surface-paper rounded-2xl p-8 md:p-10">
+            {/* STATE: Success confirmation — shown after successful submission */}
             {sent ? (
               <div className="py-12 text-center">
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/15 text-primary">
@@ -101,13 +136,17 @@ function ContactPage() {
                 </p>
               </div>
             ) : (
+              // Form state
               <form onSubmit={submit} className="space-y-5">
+                {/* VALIDATION: Error banner — shown if the DB call fails */}
                 {error && (
                   <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
                     {error}
                   </div>
                 )}
+                {/* Name + email side by side on wider screens */}
                 <div className="grid gap-5 sm:grid-cols-2">
+                  {/* VALIDATION: Name is required */}
                   <Field label="Your name">
                     <input
                       required
@@ -117,6 +156,7 @@ function ContactPage() {
                       placeholder="Jane Doe"
                     />
                   </Field>
+                  {/* VALIDATION: Email is required and must be a valid email format */}
                   <Field label="Email">
                     <input
                       required
@@ -128,6 +168,7 @@ function ContactPage() {
                     />
                   </Field>
                 </div>
+                {/* Company name — optional */}
                 <Field label="Company (optional)">
                   <input
                     value={form.company}
@@ -136,6 +177,7 @@ function ContactPage() {
                     placeholder="Where you work"
                   />
                 </Field>
+                {/* Topic dropdown — determines routing to the right team */}
                 <Field label="Topic">
                   <select
                     value={form.topic}
@@ -148,6 +190,7 @@ function ContactPage() {
                     <option>Something else</option>
                   </select>
                 </Field>
+                {/* VALIDATION: Message is required */}
                 <Field label="Message">
                   <textarea
                     required
@@ -158,6 +201,7 @@ function ContactPage() {
                     placeholder="Tell us what you're working on…"
                   />
                 </Field>
+                {/* STATE: Button is disabled while submitting */}
                 <button
                   type="submit"
                   disabled={loading}
@@ -176,6 +220,9 @@ function ContactPage() {
   );
 }
 
+// ─── Field ────────────────────────────────────────────────────────────────────
+// Wraps a form control with a styled uppercase label.
+// Used to ensure consistent label + input spacing throughout the form.
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -187,6 +234,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// ─── ContactItem ──────────────────────────────────────────────────────────────
+// Displays a contact type + detail pair (e.g. "Press · press@skillnetwork.work").
+// Uses a left border accent to visually separate each item.
 function ContactItem({ label, detail }: { label: string; detail: string }) {
   return (
     <div className="border-l-2 border-border pl-4">

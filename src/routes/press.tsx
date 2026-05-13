@@ -1,6 +1,20 @@
+// =============================================================================
+// PRESS PAGE — src/routes/press.tsx
+// =============================================================================
+// Static press page containing founder quotes, a press kit request link, and
+// a list of recent media coverage. No data fetching occurs — all content is
+// hardcoded in the `coverage` array. Sets Open Graph and meta tags for SEO.
+//
+// The coverage list links to the contact page (actual article URLs not yet
+// integrated). The press kit is available on request via the contact form.
+//
+// KEYWORDS: NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 
+// NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/press")({
   head: () => ({
     meta: [
@@ -16,6 +30,9 @@ export const Route = createFileRoute("/press")({
   component: PressPage,
 });
 
+// Recent media coverage entries. Each entry has the publication name, article
+// title, and publication date. Clicking any row links to the contact page
+// (full article URLs not yet integrated).
 const coverage = [
   { outlet: "Sifted", title: "Skill Network bets that resumes are over", date: "Mar 2026" },
   {
@@ -36,6 +53,7 @@ function PressPage() {
     <div className="min-h-dvh bg-background">
       <SiteHeader />
 
+      {/* Page headline */}
       <section className="container mx-auto px-6 pb-16 pt-20 lg:pt-28">
         <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           Press
@@ -47,13 +65,16 @@ function PressPage() {
         </h1>
       </section>
 
+      {/* Press kit + founder quotes section */}
       <section className="border-y border-border bg-paper">
         <div className="container mx-auto grid gap-12 px-6 py-20 lg:grid-cols-12">
+          {/* Left: press kit download CTA */}
           <div className="lg:col-span-4">
             <h2 className="font-display text-3xl">Press kit</h2>
             <p className="mt-3 text-muted-foreground">
               Logos, founder portraits, product screenshots, and the one-pager. Updated quarterly.
             </p>
+            {/* NAVIGATION: Links to the contact page to request the press kit */}
             <Link
               to="/contact"
               className="mt-6 inline-flex rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
@@ -61,6 +82,7 @@ function PressPage() {
               Request press kit →
             </Link>
           </div>
+          {/* Right: two founder quotes displayed side-by-side */}
           <div className="grid gap-6 lg:col-span-8 md:grid-cols-2">
             <Quote
               by="Naomi Adler, Co-founder & CEO"
@@ -74,10 +96,12 @@ function PressPage() {
         </div>
       </section>
 
+      {/* Recent media coverage list */}
       <section className="container mx-auto px-6 py-24">
         <h2 className="font-display text-3xl">Recent coverage</h2>
         <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
           {coverage.map((c, i) => (
+            // NAVIGATION: Each row links to the contact page (real article URLs TBD)
             <a
               key={c.title}
               href="/contact"
@@ -87,11 +111,14 @@ function PressPage() {
               }
             >
               <div className="min-w-0">
+                {/* Publication name */}
                 <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   {c.outlet}
                 </div>
+                {/* Article title */}
                 <div className="mt-1 font-display text-lg">{c.title}</div>
               </div>
+              {/* Publication date in mono font */}
               <span className="font-mono text-xs text-muted-foreground">{c.date}</span>
             </a>
           ))}
@@ -103,6 +130,9 @@ function PressPage() {
   );
 }
 
+// ─── Quote ────────────────────────────────────────────────────────────────────
+// Displays a founder quote in a blockquote-style card.
+// q = the quote text, by = attribution string.
 function Quote({ q, by }: { q: string; by: string }) {
   return (
     <blockquote className="surface-paper rounded-2xl p-6">

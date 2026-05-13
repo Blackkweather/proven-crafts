@@ -1556,6 +1556,85 @@ export async function updateMatchStatus(matchId: string, status: MatchStatus): P
 }
 
 // ---------------------------------------------------------------------------
+// Candidate votes & notes
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch all votes cast on an application, sorted by time.
+ * Company users can see all votes for their job applications (enforced by RLS).
+ *
+ * DATABASE: reads `candidate_votes` for the given applicationId.
+ */
+export async function fetchApplicationVotes(applicationId: string): Promise<CandidateVote[]> {
+  const { data, error } = await supabase
+    .from("candidate_votes")
+    .select("*")
+    .eq("application_id", applicationId)
+    .order("created_at");
+  return throwOnError(data, error) as CandidateVote[];
+}
+
+/**
+ * Cast or update the current user's vote on an application.
+ * Uses upsert on the (application_id, voter_id) unique pair so voting twice
+ * replaces the previous vote rather than creating a duplicate row.
+ *
+ * AUTH: voter_id = current auth.uid(); voter_name from user metadata.
+ * DATABASE: upserts into `candidate_votes`.
+ */
+export async function upsertVote(
+  applicationId: string,
+  vote: Vote,
+  voterName: string,
+): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("candidate_votes")
+    .upsert(
+      { application_id: applicationId, voter_id: user.id, voter_name: voterName, vote },
+      { onConflict: "application_id,voter_id" },
+    );
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Fetch all notes on an application, oldest first.
+ *
+ * DATABASE: reads `candidate_notes` for the given applicationId.
+ */
+export async function fetchApplicationNotes(applicationId: string): Promise<CandidateNote[]> {
+  const { data, error } = await supabase
+    .from("candidate_notes")
+    .select("*")
+    .eq("application_id", applicationId)
+    .order("created_at");
+  return throwOnError(data, error) as CandidateNote[];
+}
+
+/**
+ * Add a note to an application.
+ *
+ * AUTH: author_id must match auth.uid() (enforced by RLS INSERT policy).
+ * DATABASE: inserts into `candidate_notes`.
+ */
+export async function addApplicationNote(
+  applicationId: string,
+  authorId: string,
+  authorName: string,
+  body: string,
+): Promise<CandidateNote> {
+  const { data, error } = await supabase
+    .from("candidate_notes")
+    .insert({ application_id: applicationId, author_id: authorId, author_name: authorName, body })
+    .select()
+    .single();
+  return throwOnError(data, error) as CandidateNote;
+}
+
+// ---------------------------------------------------------------------------
 // Edge function helpers
 // ---------------------------------------------------------------------------
 

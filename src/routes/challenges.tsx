@@ -1,7 +1,25 @@
+// =============================================================================
+// CHALLENGES LIST PAGE — src/routes/challenges.tsx
+// =============================================================================
+// Public-facing page listing all open skill challenges posted by companies.
+// Accessible to anyone — logged-out visitors, talent, and companies. Each
+// challenge card links to the full challenge detail page where talent can
+// read the brief and submit their work.
+//
+// While challenges are loading, animated skeleton cards are shown as placeholders.
+// The page also shows some static marketing stats (73 closed in 2026, 42% lead
+// to interview) alongside the live count of currently open challenges.
+//
+// DATA FLOW: Uses the `useChallenges` hook which queries Supabase for all
+//            open challenges (status = 'open') in real time.
+// KEYWORDS: DATABASE, NAVIGATION
+// =============================================================================
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { useChallenges } from "@/lib/hooks";
 
+// NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/challenges")({
   head: () => ({
     meta: [
@@ -21,17 +39,21 @@ export const Route = createFileRoute("/challenges")({
   component: ChallengesIndex,
 });
 
+// Calculates how many days remain before a challenge deadline.
+// Returns 0 if the deadline has already passed.
 function daysLeft(deadline_at: string): number {
   return Math.max(0, Math.ceil((new Date(deadline_at).getTime() - Date.now()) / 86400000));
 }
 
 function ChallengesIndex() {
+  // DATABASE: Load all open challenges from Supabase.
   const { challenges, loading } = useChallenges();
 
   return (
     <div className="min-h-dvh bg-background">
       <SiteHeader />
 
+      {/* Hero section — headline + stats strip */}
       <section className="container mx-auto px-6 pb-12 pt-20 lg:pt-28">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-7">
@@ -48,10 +70,13 @@ function ChallengesIndex() {
               hiring. You submit output, not a CV.
             </p>
           </div>
+          {/* Stats card — live count + hardcoded marketing stats */}
           <div className="lg:col-span-5">
             <div className="surface-paper rounded-2xl p-6">
               <div className="grid grid-cols-3 divide-x divide-border text-center">
+                {/* DATABASE: Live count of open challenges */}
                 <Stat n={loading ? "—" : String(challenges?.length ?? 0)} l="Live now" />
+                {/* Static marketing stats */}
                 <Stat n="73" l="Closed in 2026" />
                 <Stat n="42%" l="Lead to interview" />
               </div>
@@ -60,20 +85,25 @@ function ChallengesIndex() {
         </div>
       </section>
 
+      {/* Challenge cards grid */}
       <section className="container mx-auto grid gap-6 px-6 pb-24 md:grid-cols-2">
+        {/* STATE: Loading state — animated skeleton placeholders */}
         {loading ? (
           [0, 1, 2, 3].map((i) => (
             <div key={i} className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
           ))
         ) : !challenges || challenges.length === 0 ? (
+          // Empty state — shown when there are no open challenges
           <p className="text-sm text-muted-foreground col-span-2">
             No challenges available right now.
           </p>
         ) : (
+          // DATABASE: Render one card per open challenge.
           challenges.map((c) => {
             const companyName = c.company?.company_name ?? c.company?.display_name;
             const days = c.deadline_at ? daysLeft(c.deadline_at) : 0;
             return (
+              // NAVIGATION: Each card links to the challenge detail page.
               <Link
                 key={c.id}
                 to="/challenges/$challengeId"
@@ -117,6 +147,9 @@ function ChallengesIndex() {
   );
 }
 
+// ─── Stat ─────────────────────────────────────────────────────────────────────
+// Small stat display used in the hero stats card.
+// n = the number/value, l = the label below it.
 function Stat({ n, l }: { n: string; l: string }) {
   return (
     <div className="px-2">
