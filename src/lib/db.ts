@@ -1314,21 +1314,6 @@ export async function logAdminAction(
 }
 
 /**
- * Fetch the admin audit log, newest first.
- */
-export async function fetchAuditLog(limit = 200): Promise<{
-  id: string; admin_id: string; action: string; target_type: string;
-  target_id: string | null; details: Record<string, unknown>; created_at: string;
-}[]> {
-  const { data, error } = await supabase
-    .from("admin_audit_log")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  return throwOnError(data, error) as never;
-}
-
-/**
  * Count how many times the authenticated user's profile was viewed in the last 30 days.
  * Used on the talent dashboard to show profile visibility stats.
  *

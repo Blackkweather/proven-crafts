@@ -56,9 +56,6 @@ import {
 // Internal utility
 // ---------------------------------------------------------------------------
 
-/** A no-op refetch placeholder used before data is first loaded. */
-const noop = () => {};
-
 // ---------------------------------------------------------------------------
 // useProfile
 // ---------------------------------------------------------------------------
@@ -539,7 +536,7 @@ export function useNotifications(userId?: string) {
     }
   }, [userId]);
 
-  return { notifications, loading, error, unreadCount, markAllRead };
+  return { notifications, setNotifications, loading, error, unreadCount, markAllRead };
 }
 
 // ---------------------------------------------------------------------------
