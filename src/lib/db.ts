@@ -45,6 +45,31 @@ function sanitizeSearchTerm(term: string): string {
   return term.replace(/[(),."]/g, "");
 }
 
+/** Escape HTML special characters to prevent XSS in email clients. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+/**
+ * Return the URL only if it uses http(s). Rejects javascript:, data:, and
+ * other schemes that could execute in email clients.
+ */
+function safeLinkHref(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") return url;
+  } catch {
+    // malformed URL
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -116,6 +141,7 @@ export interface Profile {
   notif_weekly_digest: boolean;
   notif_marketing: boolean;
   onboarding_completed_at: string | null;
+  referral_code: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -488,7 +514,8 @@ export async function fetchProfile(userId: string): Promise<FullProfile> {
 export async function updateProfile(userId: string, data: ProfileUpdate): Promise<Profile> {
   const { data: updated, error } = await supabase
     .from("profiles")
-    .update(data)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(data as any)
     .eq("id", userId)
     .select()
     .single();
@@ -1120,6 +1147,20 @@ export async function markNotificationsRead(userId: string): Promise<void> {
 }
 
 /**
+ * Mark a single notification as read.
+ *
+ * DATABASE: updates `read_at` in `notifications` for the given notification id.
+ */
+export async function markNotificationRead(notificationId: string): Promise<void> {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", notificationId)
+    .is("read_at", null);
+  if (error) throw new Error(error.message);
+}
+
+/**
  * Mark a single message as read.
  * The `.is("read_at", null)` guard prevents updating already-read messages,
  * keeping the update idempotent.
@@ -1198,11 +1239,12 @@ export async function fetchMarketRates(skills?: string[]): Promise<MarketRate[]>
  *
  * DATABASE: reads all rows from `profiles`, ordered by newest first.
  */
-export async function fetchAllUsers(): Promise<Profile[]> {
+export async function fetchAllUsers(limit = 300): Promise<Profile[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(limit);
   return throwOnError(data, error) as Profile[];
 }
 
@@ -1248,6 +1290,42 @@ export async function reinstateUser(userId: string): Promise<void> {
     .from("user_roles")
     .upsert({ user_id: userId, role: "talent" }, { onConflict: "user_id,role" });
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Append a row to the admin audit log.
+ * Call this after every admin action (suspend, reinstate, delete, etc.).
+ * Silently swallows errors so a logging failure never breaks the action itself.
+ */
+export async function logAdminAction(
+  adminId: string,
+  action: string,
+  targetType: string,
+  targetId?: string,
+  details?: Record<string, unknown>,
+): Promise<void> {
+  await supabase.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action,
+    target_type: targetType,
+    target_id: targetId ?? null,
+    details: (details ?? {}) as Record<string, never>,
+  });
+}
+
+/**
+ * Fetch the admin audit log, newest first.
+ */
+export async function fetchAuditLog(limit = 200): Promise<{
+  id: string; admin_id: string; action: string; target_type: string;
+  target_id: string | null; details: Record<string, unknown>; created_at: string;
+}[]> {
+  const { data, error } = await supabase
+    .from("admin_audit_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return throwOnError(data, error) as never;
 }
 
 /**
@@ -1761,4 +1839,128 @@ export async function searchAll(query: string): Promise<SearchResults> {
     challenges: (challengesRes.data ?? []) as Challenge[],
     talent: (talentRes.data ?? []) as Profile[],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Subscriptions (Stripe billing)
+// ---------------------------------------------------------------------------
+
+export interface Subscription {
+  id: string;
+  company_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  plan: string;
+  status: string;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchSubscription(companyId: string): Promise<Subscription | null> {
+  assertUUID(companyId);
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as Subscription | null;
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (in-app + email)
+// ---------------------------------------------------------------------------
+
+export interface NotificationInput {
+  user_id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  link?: string;
+  /** If provided, an email is also sent via the send-email edge function. */
+  email?: string;
+}
+
+/**
+ * Create an in-app notification. If `email` is provided, also fires the
+ * send-email edge function (best-effort — failure is logged, not thrown).
+ *
+ * DATABASE: inserts into `notifications`.
+ * API: optionally calls the `send-email` edge function.
+ */
+export async function createNotification(input: NotificationInput): Promise<void> {
+  const { email, ...row } = input;
+
+  // Use SECURITY DEFINER RPC — direct client INSERT has no INSERT policy.
+  const { error } = await supabase.rpc("create_notification", {
+    p_user_id: row.user_id,
+    p_kind: row.kind,
+    p_title: row.title,
+    p_body: row.body,
+    p_link: row.link ?? null,
+  });
+  if (error) throw new Error(error.message);
+
+  if (email) {
+    const safeTitle = escapeHtml(row.title);
+    const safeBody  = escapeHtml(row.body);
+    const safeLink  = safeLinkHref(row.link);
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
+        <div style="font-size:20px;font-weight:600;margin-bottom:8px">${safeTitle}</div>
+        <p style="color:#666;margin:0 0 20px">${safeBody}</p>
+        ${safeLink ? `<a href="${safeLink}" style="background:#000;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px">View →</a>` : ""}
+        <p style="margin-top:32px;font-size:12px;color:#999">Skill Network · <a href="https://tanstack-start-app.skillnetwork.workers.dev/app/settings" style="color:#999">Manage notifications</a></p>
+      </div>`;
+
+    supabase.functions
+      .invoke("send-email", { body: { to: email, subject: row.title, html } })
+      .catch((e: Error) => console.warn("[createNotification] email send failed:", e.message));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Referrals
+// ---------------------------------------------------------------------------
+
+export interface Referral {
+  id: string;
+  referrer_id: string;
+  code: string;
+  referred_user_id: string | null;
+  converted_at: string | null;
+  created_at: string;
+}
+
+export interface ReferralStats {
+  total_referrals: number;
+  converted_referrals: number;
+}
+
+export async function fetchReferralStats(userId: string): Promise<ReferralStats> {
+  assertUUID(userId);
+  const { data, error } = await supabase
+    .from("referral_stats")
+    .select("total_referrals, converted_referrals")
+    .eq("referrer_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return { total_referrals: data?.total_referrals ?? 0, converted_referrals: data?.converted_referrals ?? 0 };
+}
+
+export async function recordReferral(referralCode: string, referredUserId: string): Promise<void> {
+  assertUUID(referredUserId);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("referral_code", referralCode)
+    .single();
+  if (!profile) return;
+  await supabase.from("referrals").upsert(
+    { referrer_id: profile.id, code: referralCode, referred_user_id: referredUserId, converted_at: new Date().toISOString() },
+    { onConflict: "code" }
+  );
 }
