@@ -1389,11 +1389,11 @@ export type Database = {
     Functions: {
       create_notification: {
         Args: {
-          p_user_id: string
-          p_kind: string
-          p_title: string
           p_body: string
-          p_link?: string | null
+          p_kind: string
+          p_link?: string
+          p_title: string
+          p_user_id: string
         }
         Returns: undefined
       }
@@ -1407,8 +1407,8 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
