@@ -15,10 +15,12 @@
 // =============================================================================
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { SkillTag } from "@/components/skill-tag";
 import { MatchScore } from "@/components/match-score";
-import { useChallenges, useJobs } from "@/lib/hooks";
+import { useChallenges, useJobs, usePlatformStats } from "@/lib/hooks";
+import { fetchFeaturedTalent, type FeaturedTalent } from "@/lib/db";
 
 // NAVIGATION: This is the root route "/" — the entry point of the whole app.
 export const Route = createFileRoute("/")({
@@ -26,10 +28,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  // DATABASE: Load live jobs and challenges from Supabase via hooks.
-  // These populate the "dual preview" section at the bottom of the page.
   const { challenges, loading: challengesLoading } = useChallenges();
   const { jobs, loading: jobsLoading } = useJobs();
+  const { stats } = usePlatformStats();
+  const [featured, setFeatured] = useState<FeaturedTalent | null>(null);
+
+  useEffect(() => {
+    fetchFeaturedTalent().then(setFeatured).catch(() => setFeatured(null));
+  }, []);
 
   // STATE: Pick the first job and challenge to feature as a live preview card.
   const featuredJob = jobs[0] ?? null;
@@ -90,71 +96,66 @@ function Landing() {
               </Link>
             </div>
 
-            {/* DATABASE: Challenge count is live; other stats are hardcoded marketing copy */}
             <div className="mt-14 grid grid-cols-3 gap-8 border-t border-border pt-8 max-w-md">
-              <Stat n="12.4k" l="Verified talent" />
+              <Stat n={stats ? `${stats.talentCount.toLocaleString()}` : "…"} l="Verified talent" />
               <Stat n={challengesLoading ? "…" : `${challenges.length}+`} l="Active challenges" />
-              <Stat n="9.1d" l="Avg. time-to-hire" />
+              <Stat n={stats ? `${stats.companyCount.toLocaleString()}` : "…"} l="Companies hiring" />
             </div>
           </div>
 
-          {/* Candidate preview card — static illustrative data, NOT from the database */}
+          {/* Candidate preview card — live data from the most complete talent profile */}
           <div className="lg:col-span-5">
             <div className="relative">
               <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-br from-warm/60 via-transparent to-primary/10 blur-2xl" />
-              <article className="surface-paper rounded-2xl shadow-elevated">
-                <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    Candidate · live preview
-                  </span>
-                  <span className="font-mono text-[10px] text-muted-foreground">#0429</span>
-                </div>
-
-                <div className="px-6 pb-6 pt-5">
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="flex items-center gap-3">
-                      <div className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground font-display text-lg">
-                        AJ
-                      </div>
-                      <div>
-                        <div className="font-display text-xl">Alex Johnson</div>
-                        <div className="text-xs text-muted-foreground">
-                          Senior Full-Stack Engineer
+              {featured ? (
+                <article className="surface-paper rounded-2xl shadow-elevated">
+                  <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Candidate · live profile
+                    </span>
+                  </div>
+                  <div className="px-6 pb-6 pt-5">
+                    <div className="flex items-start justify-between gap-6">
+                      <div className="flex items-center gap-3">
+                        {featured.avatar_url ? (
+                          <img
+                            src={featured.avatar_url}
+                            alt={featured.display_name}
+                            className="h-12 w-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground font-display text-lg">
+                            {featured.display_name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-display text-xl">{featured.display_name}</div>
+                          <div className="text-xs text-muted-foreground">{featured.headline}</div>
                         </div>
                       </div>
+                      <MatchScore value={featured.skills.length > 0 ? Math.min(100, 60 + featured.skills.length * 8) : 60} />
                     </div>
-                    {/* MatchScore component renders a circular percentage badge */}
-                    <MatchScore value={94} />
+                    <p className="mt-5 line-clamp-3 text-sm text-foreground/80 leading-relaxed">
+                      {featured.bio}
+                    </p>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {featured.skills.map((s) => (
+                        <SkillTag
+                          key={s.name}
+                          skill={{ name: s.name, level: s.level as "expert" | "advanced" | "proficient" | "foundational" }}
+                          tone={s.level === "expert" ? "primary" : "default"}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-6 grid grid-cols-2 gap-3">
+                      <MiniStat label="Portfolio items" value={String(featured.portfolio_count)} />
+                      <MiniStat label="Challenges won" value={String(featured.challenge_wins)} />
+                    </div>
                   </div>
-
-                  <p className="mt-5 text-sm text-foreground/80 leading-relaxed">
-                    8 years shipping production React and Node.js. Recent work: a real-time
-                    collaborative editor used by 50k teams.
-                  </p>
-
-                  {/* SkillTag renders a styled pill for each skill with level styling */}
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {[
-                      { name: "React", level: "expert" as const },
-                      { name: "TypeScript", level: "expert" as const },
-                      { name: "Node.js", level: "advanced" as const },
-                      { name: "PostgreSQL", level: "advanced" as const },
-                      { name: "Rust", level: "proficient" as const },
-                    ].map((s) => (
-                      <SkillTag
-                        key={s.name}
-                        skill={s}
-                        tone={s.level === "expert" ? "primary" : "default"}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="mt-6 grid grid-cols-2 gap-3">
-                    <MiniStat label="Shipped projects" value="18" />
-                    <MiniStat label="Challenges won" value="3" />
-                  </div>
-                </div>
-              </article>
+                </article>
+              ) : (
+                <div className="h-72 animate-pulse rounded-2xl border border-border bg-card" />
+              )}
             </div>
           </div>
         </div>

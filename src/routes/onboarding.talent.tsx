@@ -31,7 +31,7 @@ import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useState } from "react";
 // Direct Supabase client — needed to call getUser() and avoid auth context race condition.
 import { supabase } from "@/integrations/supabase/client";
-import { upsertTalentOnboarding, completeOnboarding } from "@/lib/db";
+import { upsertTalentOnboarding, completeOnboarding, recordReferral } from "@/lib/db";
 import {
   Briefcase,
   Sparkles,
@@ -62,6 +62,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { usePlatformStats } from "@/lib/hooks";
 
 // NAVIGATION: Route definition for "/onboarding/talent".
 export const Route = createFileRoute("/onboarding/talent")({
@@ -98,12 +99,6 @@ const STEP_META = [
   },
 ];
 
-// Static platform stats shown in the left sidebar to build confidence.
-const PLATFORM_STATS = [
-  "4,200+ companies hiring",
-  "18,000+ verified skills",
-  "Avg. 8 days to first call",
-];
 
 // ─── Role data ────────────────────────────────────────────────────────────────
 // The 12 primary role categories a user can choose from on Step 1.
@@ -202,8 +197,8 @@ const AVAILABILITY_OPTS = [
 // ─── Root component ───────────────────────────────────────────────────────────
 
 function TalentOnboarding() {
-  // AUTH: Used to access the display name and to call `refresh()` after saving.
   const auth = useAuth();
+  const { stats } = usePlatformStats();
   const { profile } = auth;
 
   // NAVIGATION: Navigate to /app after onboarding completes.
@@ -279,18 +274,48 @@ function TalentOnboarding() {
     }
 
     try {
+      const availabilityMap: Record<string, "open" | "exploring" | "booked"> = {
+        now: "open",
+        "2weeks": "exploring",
+        "1month": "exploring",
+        passive: "booked",
+      };
+      const dbAvailability = availabilityMap[availability] ?? "exploring";
+
+      const portfolioLinks = [
+        { label: "GitHub", url: github },
+        { label: "LinkedIn", url: linkedin },
+        { label: "Portfolio", url: website },
+        { label: "Other", url: other },
+      ]
+        .filter((l) => l.url.trim())
+        .map((l) => ({
+          title: l.label,
+          type: "project" as const,
+          summary: "",
+          tags: [] as string[],
+          year: new Date().getFullYear(),
+          pinned: false,
+          url: l.url.trim(),
+          cover_url: null as null,
+        }));
+
       // DATABASE: Write the talent profile data (headline, location, availability, skills).
       await upsertTalentOnboarding(user.id, {
         headline: `${seniority} ${role}`.trim(),
         location,
-        availability: (availability as "open" | "exploring" | "booked") || "exploring",
+        availability: dbAvailability,
         skills: Object.entries(skills).map(([name, level]) => ({
           name,
           level: level as "foundational" | "proficient" | "advanced" | "expert",
         })),
+        portfolio: portfolioLinks.length > 0 ? portfolioLinks : undefined,
       });
       // DATABASE: Mark the user's onboarding as complete in the profiles table.
       await completeOnboarding(user.id);
+      // Track referral if the user came via an invite link
+      const refCode = localStorage.getItem("referral_code");
+      if (refCode) { recordReferral(refCode, user.id).catch(() => {}); localStorage.removeItem("referral_code"); }
       // AUTH: Refresh the auth session so the context picks up the updated profile.
       await auth.refresh();
       // NAVIGATION: Send the user to their talent dashboard.
@@ -385,7 +410,11 @@ function TalentOnboarding() {
             <p className="text-sm leading-relaxed text-background/70 italic">"{meta.insight}"</p>
           </div>
           <div className="space-y-2">
-            {PLATFORM_STATS.map((s) => (
+            {stats && [
+              `${stats.companyCount.toLocaleString()}+ companies hiring`,
+              `${stats.totalSkillsCount.toLocaleString()}+ verified skills`,
+              `${stats.openChallengesCount}+ active challenges`,
+            ].map((s) => (
               <div key={s} className="flex items-center gap-2 text-xs text-background/40">
                 <span className="h-1 w-1 rounded-full bg-background/30" />
                 {s}

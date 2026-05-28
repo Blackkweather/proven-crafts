@@ -34,39 +34,6 @@ export const Route = createFileRoute("/careers")({
   component: CareersPage,
 });
 
-// List of current open roles. Each item has a unique id, title, team, location,
-// and employment type. Clicking a role links to the contact page as a simple
-// apply-via-email flow (dedicated role pages not yet built).
-const openings = [
-  {
-    id: "eng-staff",
-    title: "Staff Product Engineer",
-    team: "Engineering",
-    location: "Berlin / Remote (EU)",
-    type: "Full-time",
-  },
-  {
-    id: "design-lead",
-    title: "Design Lead, Talent Experience",
-    team: "Design",
-    location: "Berlin / Lisbon",
-    type: "Full-time",
-  },
-  {
-    id: "talent-partner",
-    title: "Talent Partner",
-    team: "Network",
-    location: "Remote (EU)",
-    type: "Full-time",
-  },
-  {
-    id: "editorial",
-    title: "Editorial Producer",
-    team: "Brand",
-    location: "Remote",
-    type: "Contract",
-  },
-];
 
 // Three "how we work" principles shown at the bottom of the page.
 const principles = [
@@ -125,28 +92,12 @@ function CareersPage() {
       <section className="border-y border-border bg-paper">
         <div className="container mx-auto px-6 py-20">
           <h2 className="font-display text-3xl">Open roles</h2>
-          <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-background">
-            {openings.map((o, i) => (
-              // NAVIGATION: Each role links to the contact page as the apply mechanism.
-              <Link
-                key={o.id}
-                to="/contact"
-                className={
-                  "group flex items-center justify-between gap-6 px-6 py-5 transition-colors hover:bg-accent " +
-                  (i ? "border-t border-border" : "")
-                }
-              >
-                <div className="min-w-0">
-                  <div className="font-display text-lg">{o.title}</div>
-                  <div className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">
-                    {o.team} · {o.location} · {o.type}
-                  </div>
-                </div>
-                <span className="font-mono text-xs text-muted-foreground transition-colors group-hover:text-foreground">
-                  Apply →
-                </span>
-              </Link>
-            ))}
+          <div className="mt-8 rounded-2xl border border-border bg-background px-6 py-10 text-center text-sm text-muted-foreground">
+            No open roles at this time. Check back soon — or send a speculative application via the{" "}
+            <Link to="/contact" className="underline hover:text-foreground">
+              contact page
+            </Link>
+            .
           </div>
         </div>
       </section>

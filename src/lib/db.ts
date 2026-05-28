@@ -1293,6 +1293,18 @@ export async function reinstateUser(userId: string): Promise<void> {
 }
 
 /**
+ * Returns the set of user IDs that have at least one row in user_roles.
+ * Any talent profile whose ID is NOT in this set has been suspended
+ * (suspendUser deletes all their roles).
+ *
+ * DATABASE: reads user_id column from user_roles.
+ */
+export async function fetchActiveUserIds(): Promise<Set<string>> {
+  const { data } = await supabase.from("user_roles").select("user_id");
+  return new Set((data ?? []).map((r) => r.user_id as string));
+}
+
+/**
  * Append a row to the admin audit log.
  * Call this after every admin action (suspend, reinstate, delete, etc.).
  * Silently swallows errors so a logging failure never breaks the action itself.
@@ -1827,6 +1839,103 @@ export async function searchAll(query: string): Promise<SearchResults> {
 }
 
 // ---------------------------------------------------------------------------
+// Platform stats (public — used on marketing and onboarding pages)
+// ---------------------------------------------------------------------------
+
+export interface PlatformStats {
+  talentCount: number;
+  companyCount: number;
+  openJobsCount: number;
+  openChallengesCount: number;
+  closedChallengesCount: number;
+  totalSkillsCount: number;
+}
+
+export async function fetchPlatformStats(): Promise<PlatformStats> {
+  const [talentRes, companyRes, jobsRes, openChallRes, closedChallRes, skillsRes] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("account_type", "talent"),
+      supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("account_type", "company"),
+      supabase.from("jobs").select("*", { count: "exact", head: true }).eq("status", "open"),
+      supabase
+        .from("challenges")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "open"),
+      supabase
+        .from("challenges")
+        .select("*", { count: "exact", head: true })
+        .neq("status", "open"),
+      supabase.from("skills").select("*", { count: "exact", head: true }),
+    ]);
+
+  return {
+    talentCount: talentRes.count ?? 0,
+    companyCount: companyRes.count ?? 0,
+    openJobsCount: jobsRes.count ?? 0,
+    openChallengesCount: openChallRes.count ?? 0,
+    closedChallengesCount: closedChallRes.count ?? 0,
+    totalSkillsCount: skillsRes.count ?? 0,
+  };
+}
+
+export interface FeaturedTalent {
+  id: string;
+  display_name: string;
+  headline: string;
+  bio: string;
+  avatar_url: string | null;
+  challenge_wins: number;
+  portfolio_count: number;
+  skills: { name: string; level: string }[];
+}
+
+/**
+ * Returns the most complete talent profile for use as a live showcase on the
+ * public landing page. Selects the profile with the highest completeness_pct
+ * that has both a headline and bio set.
+ *
+ * DATABASE: reads profiles, skills, and portfolio_items tables.
+ */
+export async function fetchFeaturedTalent(): Promise<FeaturedTalent | null> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, display_name, headline, bio, avatar_url, challenge_wins, completeness_pct")
+    .eq("account_type", "talent")
+    .neq("bio", "")
+    .neq("headline", "")
+    .order("completeness_pct", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!profile) return null;
+
+  const [skillsRes, portfolioRes] = await Promise.all([
+    supabase.from("skills").select("name, level").eq("profile_id", profile.id).limit(5),
+    supabase
+      .from("portfolio_items")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", profile.id),
+  ]);
+
+  return {
+    id: profile.id,
+    display_name: profile.display_name,
+    headline: (profile.headline as string) ?? "",
+    bio: (profile.bio as string) ?? "",
+    avatar_url: profile.avatar_url,
+    challenge_wins: (profile.challenge_wins as number) ?? 0,
+    portfolio_count: portfolioRes.count ?? 0,
+    skills: (skillsRes.data ?? []) as { name: string; level: string }[],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Subscriptions (Stripe billing)
 // ---------------------------------------------------------------------------
 
@@ -1884,7 +1993,7 @@ export async function createNotification(input: NotificationInput): Promise<void
     p_kind: row.kind,
     p_title: row.title,
     p_body: row.body,
-    p_link: row.link ?? null,
+    p_link: row.link ?? undefined,
   });
   if (error) throw new Error(error.message);
 

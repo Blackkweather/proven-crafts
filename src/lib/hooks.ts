@@ -37,6 +37,7 @@ import {
   markNotificationsRead,
   fetchLeaderboard,
   fetchMarketRates,
+  fetchPlatformStats,
   searchAll,
   type FullProfile,
   type Job,
@@ -49,6 +50,7 @@ import {
   type UnreadCounts,
   type LeaderboardEntry,
   type MarketRate,
+  type PlatformStats,
   type SearchResults,
 } from "./db";
 
@@ -744,4 +746,28 @@ export function useSearch(query: string) {
   }, [query]);
 
   return { results, loading };
+}
+
+// ---------------------------------------------------------------------------
+// usePlatformStats
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches platform-wide counts for use on marketing and onboarding pages.
+ * Fetches once on mount — no realtime subscription needed for these counters.
+ *
+ * DATABASE: calls fetchPlatformStats() from db.ts.
+ */
+export function usePlatformStats() {
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPlatformStats()
+      .then(setStats)
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { stats, loading };
 }

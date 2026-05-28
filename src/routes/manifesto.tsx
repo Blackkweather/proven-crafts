@@ -155,20 +155,6 @@ function Manifesto() {
           </p>
         </section>
 
-        {/* Stats interlude — three data points displayed in a grid */}
-        <div className="my-16 grid gap-px rounded-2xl border border-border overflow-hidden sm:grid-cols-3">
-          {[
-            { v: "94%", label: "of companies report better fit vs. prior process" },
-            { v: "3×", label: "more recruiter views on verified skill profiles" },
-            { v: "6d", label: "average time from challenge submission to offer" },
-          ].map((s) => (
-            <div key={s.label} className="bg-card p-7">
-              <div className="font-display text-4xl">{s.v}</div>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.label}</p>
-            </div>
-          ))}
-        </div>
-
         {/* Section 4: What we're building toward */}
         <section className="space-y-6 text-lg leading-relaxed text-foreground/85">
           <h2 className="font-display text-3xl text-foreground">What we're building toward.</h2>

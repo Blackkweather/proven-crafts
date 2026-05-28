@@ -32,7 +32,7 @@
 
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { upsertCompanyOnboarding, completeOnboarding } from "@/lib/db";
+import { upsertCompanyOnboarding, completeOnboarding, recordReferral } from "@/lib/db";
 // Direct Supabase client — needed to call getUser() and avoid auth context race condition.
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -60,6 +60,7 @@ import {
   Star,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { usePlatformStats } from "@/lib/hooks";
 
 // NAVIGATION: Route definition for "/onboarding/company".
 export const Route = createFileRoute("/onboarding/company")({
@@ -102,12 +103,6 @@ const STEP_META = [
   },
 ];
 
-// Static platform stats shown in the left sidebar to build confidence.
-const PLATFORM_STATS = [
-  "12,000+ verified developers",
-  "340+ companies hired this month",
-  "Avg. 8 days to first interview",
-];
 
 // ─── Company data ─────────────────────────────────────────────────────────────
 // Industry options shown as a grid on Step 1.
@@ -233,6 +228,7 @@ const PRIORITIES = [
 // ─── Root component ───────────────────────────────────────────────────────────
 
 function CompanyOnboarding() {
+  const { stats } = usePlatformStats();
   // AUTH: Used to access the company's display name and to call `refresh()` after saving.
   const auth = useAuth();
   const { profile } = auth;
@@ -322,6 +318,9 @@ function CompanyOnboarding() {
       });
       // DATABASE: Mark onboarding as complete.
       await completeOnboarding(user.id);
+      // Track referral if the user came via an invite link
+      const refCode = localStorage.getItem("referral_code");
+      if (refCode) { recordReferral(refCode, user.id).catch(() => {}); localStorage.removeItem("referral_code"); }
       // AUTH: Refresh the auth session so the context picks up the updated profile.
       await auth.refresh();
       // NAVIGATION: Send the user to their company dashboard.
@@ -415,7 +414,11 @@ function CompanyOnboarding() {
             <p className="text-sm leading-relaxed text-background/70 italic">"{meta.insight}"</p>
           </div>
           <div className="space-y-2">
-            {PLATFORM_STATS.map((s) => (
+            {stats && [
+              `${stats.talentCount.toLocaleString()}+ verified developers`,
+              `${stats.openJobsCount}+ active roles`,
+              `${stats.openChallengesCount}+ active challenges`,
+            ].map((s) => (
               <div key={s} className="flex items-center gap-2 text-xs text-background/40">
                 <span className="h-1 w-1 rounded-full bg-background/30" />
                 {s}

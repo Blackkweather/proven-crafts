@@ -30,23 +30,6 @@ export const Route = createFileRoute("/press")({
   component: PressPage,
 });
 
-// Recent media coverage entries. Each entry has the publication name, article
-// title, and publication date. Clicking any row links to the contact page
-// (full article URLs not yet integrated).
-const coverage = [
-  { outlet: "Sifted", title: "Skill Network bets that resumes are over", date: "Mar 2026" },
-  {
-    outlet: "TechCrunch EU",
-    title: "Berlin's Skill Network raises €6M to rebuild hiring around proof of work",
-    date: "Feb 2026",
-  },
-  {
-    outlet: "The Generalist",
-    title: "Why the next great hiring company won't look like LinkedIn",
-    date: "Jan 2026",
-  },
-  { outlet: "Lenny's Newsletter", title: "Skill-first hiring: a field guide", date: "Nov 2025" },
-];
 
 function PressPage() {
   return (
@@ -82,16 +65,11 @@ function PressPage() {
               Request press kit →
             </Link>
           </div>
-          {/* Right: two founder quotes displayed side-by-side */}
+          {/* Right: placeholder for founder quotes — add real quotes here */}
           <div className="grid gap-6 lg:col-span-8 md:grid-cols-2">
-            <Quote
-              by="Naomi Adler, Co-founder & CEO"
-              q="The resume is a 19th-century artifact pretending to do 21st-century work. We're returning hiring to what it used to be: looking at someone's craft."
-            />
-            <Quote
-              by="Ivo Mendes, Co-founder & CTO"
-              q="A match score should be defensible. If we can't explain why two people belong on a call, we shouldn't put them on one."
-            />
+            <div className="surface-paper rounded-2xl p-6 text-sm text-muted-foreground">
+              Founder quotes coming soon.
+            </div>
           </div>
         </div>
       </section>
@@ -99,29 +77,16 @@ function PressPage() {
       {/* Recent media coverage list */}
       <section className="container mx-auto px-6 py-24">
         <h2 className="font-display text-3xl">Recent coverage</h2>
-        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
-          {coverage.map((c, i) => (
-            // NAVIGATION: Each row links to the contact page (real article URLs TBD)
-            <a
-              key={c.title}
-              href="/contact"
-              className={
-                "flex items-center justify-between gap-6 px-6 py-5 transition-colors hover:bg-accent " +
-                (i ? "border-t border-border" : "")
-              }
-            >
-              <div className="min-w-0">
-                {/* Publication name */}
-                <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  {c.outlet}
-                </div>
-                {/* Article title */}
-                <div className="mt-1 font-display text-lg">{c.title}</div>
-              </div>
-              {/* Publication date in mono font */}
-              <span className="font-mono text-xs text-muted-foreground">{c.date}</span>
-            </a>
-          ))}
+        <div className="mt-8 rounded-2xl border border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
+          No press coverage listed yet. For media enquiries, use the contact form below.
+        </div>
+        <div className="mt-6 text-center">
+          <Link
+            to="/contact"
+            className="inline-flex rounded-md border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Contact us →
+          </Link>
         </div>
       </section>
 
@@ -130,16 +95,3 @@ function PressPage() {
   );
 }
 
-// ─── Quote ────────────────────────────────────────────────────────────────────
-// Displays a founder quote in a blockquote-style card.
-// q = the quote text, by = attribution string.
-function Quote({ q, by }: { q: string; by: string }) {
-  return (
-    <blockquote className="surface-paper rounded-2xl p-6">
-      <p className="font-display text-xl leading-snug">"{q}"</p>
-      <footer className="mt-4 text-xs uppercase tracking-widest text-muted-foreground">
-        — {by}
-      </footer>
-    </blockquote>
-  );
-}

@@ -17,7 +17,8 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
-import { useChallenges } from "@/lib/hooks";
+import { useChallenges, usePlatformStats } from "@/lib/hooks";
+import { daysLeft } from "@/lib/utils";
 
 // NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/challenges")({
@@ -39,15 +40,9 @@ export const Route = createFileRoute("/challenges")({
   component: ChallengesIndex,
 });
 
-// Calculates how many days remain before a challenge deadline.
-// Returns 0 if the deadline has already passed.
-function daysLeft(deadline_at: string): number {
-  return Math.max(0, Math.ceil((new Date(deadline_at).getTime() - Date.now()) / 86400000));
-}
-
 function ChallengesIndex() {
-  // DATABASE: Load all open challenges from Supabase.
   const { challenges, loading } = useChallenges();
+  const { stats } = usePlatformStats();
 
   return (
     <div className="min-h-dvh bg-background">
@@ -70,15 +65,11 @@ function ChallengesIndex() {
               hiring. You submit output, not a CV.
             </p>
           </div>
-          {/* Stats card — live count + hardcoded marketing stats */}
           <div className="lg:col-span-5">
             <div className="surface-paper rounded-2xl p-6">
-              <div className="grid grid-cols-3 divide-x divide-border text-center">
-                {/* DATABASE: Live count of open challenges */}
+              <div className="grid grid-cols-2 divide-x divide-border text-center">
                 <Stat n={loading ? "—" : String(challenges?.length ?? 0)} l="Live now" />
-                {/* Static marketing stats */}
-                <Stat n="73" l="Closed in 2026" />
-                <Stat n="42%" l="Lead to interview" />
+                <Stat n={stats ? String(stats.closedChallengesCount) : "—"} l="Closed to date" />
               </div>
             </div>
           </div>

@@ -12,6 +12,7 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { usePlatformStats } from "@/lib/hooks";
 
 // NAVIGATION: Route definition with SEO meta tags.
 export const Route = createFileRoute("/companies")({
@@ -30,6 +31,8 @@ export const Route = createFileRoute("/companies")({
 });
 
 function CompaniesMarketing() {
+  const { stats } = usePlatformStats();
+
   return (
     <div className="min-h-dvh bg-background">
       <SiteHeader />
@@ -65,18 +68,18 @@ function CompaniesMarketing() {
           </div>
         </div>
 
-        {/* Illustrative "hiring control panel" card — static hardcoded stats, not live data */}
+        {/* Platform stats card — live data from the database */}
         <div className="lg:col-span-5">
           <div className="surface-paper rounded-2xl p-6 shadow-soft">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Hiring control panel
+              Platform at a glance
             </div>
             <ul className="mt-4 divide-y divide-border">
               {[
-                ["Open roles", "4"],
-                ["Active challenges", "2"],
-                ["Candidates in pipeline", "37"],
-                ["Avg. time-to-shortlist", "3.1 days"],
+                ["Verified talent", stats ? stats.talentCount.toLocaleString() : "…"],
+                ["Active jobs", stats ? String(stats.openJobsCount) : "…"],
+                ["Active challenges", stats ? String(stats.openChallengesCount) : "…"],
+                ["Companies hiring", stats ? String(stats.companyCount) : "…"],
               ].map(([k, v]) => (
                 <li key={k} className="flex items-center justify-between py-3 text-sm">
                   <span className="text-muted-foreground">{k}</span>
