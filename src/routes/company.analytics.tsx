@@ -48,9 +48,6 @@ function AnalyticsPage() {
     if (!user) return;
     async function load() {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const db = supabase as any;
-
         const { data: jobsData } = await supabase
           .from("jobs")
           .select("id")
@@ -58,7 +55,7 @@ function AnalyticsPage() {
         const jobIds = jobsData?.map((j) => j.id) ?? [];
 
         const [analyticsRes, pipelineRes] = await Promise.all([
-          db
+          supabase
             .from("challenge_analytics")
             .select("*")
             .eq("company_id", user!.id)

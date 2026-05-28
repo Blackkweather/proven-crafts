@@ -37,6 +37,8 @@ import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as CompanyTalentRouteImport } from './routes/company.talent'
 import { Route as CompanySettingsRouteImport } from './routes/company.settings'
+import { Route as CompanyNotificationsRouteImport } from './routes/company.notifications'
+import { Route as CompanyMatchesRouteImport } from './routes/company.matches'
 import { Route as CompanyJobsRouteImport } from './routes/company.jobs'
 import { Route as CompanyInboxRouteImport } from './routes/company.inbox'
 import { Route as CompanyChallengesRouteImport } from './routes/company.challenges'
@@ -199,6 +201,16 @@ const CompanySettingsRoute = CompanySettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => CompanyRoute,
 } as any)
+const CompanyNotificationsRoute = CompanyNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const CompanyMatchesRoute = CompanyMatchesRouteImport.update({
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => CompanyRoute,
+} as any)
 const CompanyJobsRoute = CompanyJobsRouteImport.update({
   id: '/jobs',
   path: '/jobs',
@@ -345,6 +357,8 @@ export interface FileRoutesByFullPath {
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/matches': typeof CompanyMatchesRoute
+  '/company/notifications': typeof CompanyNotificationsRoute
   '/company/settings': typeof CompanySettingsRoute
   '/company/talent': typeof CompanyTalentRoute
   '/invite/$code': typeof InviteCodeRoute
@@ -393,6 +407,8 @@ export interface FileRoutesByTo {
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/matches': typeof CompanyMatchesRoute
+  '/company/notifications': typeof CompanyNotificationsRoute
   '/company/settings': typeof CompanySettingsRoute
   '/company/talent': typeof CompanyTalentRoute
   '/invite/$code': typeof InviteCodeRoute
@@ -445,6 +461,8 @@ export interface FileRoutesById {
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/matches': typeof CompanyMatchesRoute
+  '/company/notifications': typeof CompanyNotificationsRoute
   '/company/settings': typeof CompanySettingsRoute
   '/company/talent': typeof CompanyTalentRoute
   '/invite/$code': typeof InviteCodeRoute
@@ -498,6 +516,8 @@ export interface FileRouteTypes {
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/matches'
+    | '/company/notifications'
     | '/company/settings'
     | '/company/talent'
     | '/invite/$code'
@@ -546,6 +566,8 @@ export interface FileRouteTypes {
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/matches'
+    | '/company/notifications'
     | '/company/settings'
     | '/company/talent'
     | '/invite/$code'
@@ -597,6 +619,8 @@ export interface FileRouteTypes {
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/matches'
+    | '/company/notifications'
     | '/company/settings'
     | '/company/talent'
     | '/invite/$code'
@@ -830,6 +854,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanySettingsRouteImport
       parentRoute: typeof CompanyRoute
     }
+    '/company/notifications': {
+      id: '/company/notifications'
+      path: '/notifications'
+      fullPath: '/company/notifications'
+      preLoaderRoute: typeof CompanyNotificationsRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/company/matches': {
+      id: '/company/matches'
+      path: '/matches'
+      fullPath: '/company/matches'
+      preLoaderRoute: typeof CompanyMatchesRouteImport
+      parentRoute: typeof CompanyRoute
+    }
     '/company/jobs': {
       id: '/company/jobs'
       path: '/jobs'
@@ -1057,6 +1095,8 @@ interface CompanyRouteChildren {
   CompanyChallengesRoute: typeof CompanyChallengesRoute
   CompanyInboxRoute: typeof CompanyInboxRoute
   CompanyJobsRoute: typeof CompanyJobsRoute
+  CompanyMatchesRoute: typeof CompanyMatchesRoute
+  CompanyNotificationsRoute: typeof CompanyNotificationsRoute
   CompanySettingsRoute: typeof CompanySettingsRoute
   CompanyTalentRoute: typeof CompanyTalentRoute
   CompanyIndexRoute: typeof CompanyIndexRoute
@@ -1069,6 +1109,8 @@ const CompanyRouteChildren: CompanyRouteChildren = {
   CompanyChallengesRoute: CompanyChallengesRoute,
   CompanyInboxRoute: CompanyInboxRoute,
   CompanyJobsRoute: CompanyJobsRoute,
+  CompanyMatchesRoute: CompanyMatchesRoute,
+  CompanyNotificationsRoute: CompanyNotificationsRoute,
   CompanySettingsRoute: CompanySettingsRoute,
   CompanyTalentRoute: CompanyTalentRoute,
   CompanyIndexRoute: CompanyIndexRoute,

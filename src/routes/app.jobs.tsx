@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useJobs, useMySubmissions, useProfile } from "@/lib/hooks";
-import { applyToJob } from "@/lib/db";
+import { applyToJob, createNotification } from "@/lib/db";
 import { MatchScore } from "@/components/match-score";
 import { getAIJobRecommendations, type JobRecommendation } from "@/lib/ai";
 
@@ -177,6 +177,7 @@ function JobsPage() {
           talentId={user.id}
           score={applyTarget.score}
           mySkillNames={mySkillNames}
+          displayName={profile?.display_name ?? null}
           onClose={() => setApplyJobId(null)}
         />
       )}
@@ -189,12 +190,14 @@ function ApplyModal({
   talentId,
   score,
   mySkillNames,
+  displayName,
   onClose,
 }: {
   job: {
     id: string;
     title: string;
     required_skills: string[];
+    company_id: string;
     company?: {
       company_name?: string | null;
       display_name: string;
@@ -204,6 +207,7 @@ function ApplyModal({
   talentId: string;
   score: number;
   mySkillNames: string[];
+  displayName: string | null;
   onClose: () => void;
 }) {
   const { submissions } = useMySubmissions(talentId);
@@ -227,6 +231,13 @@ function ApplyModal({
         message: message || undefined,
         challenge_submission_id: useSubmissionId ?? undefined,
       });
+      createNotification({
+        user_id: job.company_id,
+        kind: "application",
+        title: `New application for ${job.title}`,
+        body: `${displayName ?? "A candidate"} just applied to your role.`,
+        link: "/company/candidates",
+      }).catch(() => {});
       setStep("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to apply. Try again.");

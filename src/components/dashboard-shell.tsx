@@ -453,4 +453,16 @@ export const Icons = {
       <rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 7L2 7" />
     </svg>
   ),
+  card: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </svg>
+  ),
+  handshake: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="M9 12l2 2 4-4" />
+      <path d="M3 12c0-1.5.5-3 2-4l3-2h8l3 2c1.5 1 2 2.5 2 4s-.5 3-2 4l-3 2H8l-3-2c-1.5-1-2-2.5-2-4z" />
+    </svg>
+  ),
 };

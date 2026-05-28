@@ -1856,7 +1856,7 @@ export async function fetchPlatformStats(): Promise<PlatformStats> {
   // still get real counts (direct table queries return 0 for anon due to RLS).
   const { data, error } = await supabase.rpc("get_platform_stats");
   if (error) throw new Error(error.message);
-  const d = data as PlatformStats;
+  const d = data as unknown as PlatformStats;
   return {
     talentCount: d.talentCount ?? 0,
     companyCount: d.companyCount ?? 0,
@@ -1890,7 +1890,7 @@ export async function fetchFeaturedTalent(): Promise<FeaturedTalent | null> {
   // a real talent card despite RLS blocking direct profile reads for anon.
   const { data, error } = await supabase.rpc("get_featured_talent");
   if (error || !data) return null;
-  const d = data as FeaturedTalent;
+  const d = data as unknown as FeaturedTalent;
   return {
     id: d.id,
     display_name: d.display_name,

@@ -23,7 +23,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
-import { fetchJob, applyToJob } from "@/lib/db";
+import { fetchJob, applyToJob, createNotification } from "@/lib/db";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/hooks";
 import { SkillTag } from "@/components/skill-tag";
@@ -244,7 +244,7 @@ function ApplyModal({
   mySkillNames,
   onClose,
 }: {
-  job: { id: string; title: string; required_skills: string[] };
+  job: { id: string; title: string; required_skills: string[]; company_id: string };
   company?: {
     company_name?: string | null;
     display_name?: string;
@@ -316,6 +316,13 @@ function ApplyModal({
                   talent_id: talentId,
                   message: message || undefined,
                 });
+                createNotification({
+                  user_id: job.company_id,
+                  kind: "application",
+                  title: `New application for ${job.title}`,
+                  body: `A candidate just applied to your role.`,
+                  link: "/company/candidates",
+                }).catch(() => {});
                 setDone(true);
               } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to apply.");

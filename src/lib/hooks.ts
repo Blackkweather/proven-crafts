@@ -399,6 +399,21 @@ export function useConversations(userId?: string) {
     load();
   }, [load]);
 
+  // Realtime: refetch the conversation list when any message is inserted so the
+  // last-message preview and ordering stay fresh without manual refresh.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`conversations-refresh:${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        () => { load(); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, load]);
+
   return { conversations, loading, error, refetch: load };
 }
 

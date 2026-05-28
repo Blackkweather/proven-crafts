@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useCompanyPipeline } from "@/lib/hooks";
@@ -9,6 +9,7 @@ import {
   fetchApplicationNotes,
   addApplicationNote,
   createNotification,
+  getOrCreateConversation,
   type ApplicationStatus,
   type CandidateVote,
   type CandidateNote,
@@ -204,6 +205,7 @@ function Candidates() {
                     status={a.status}
                     currentUserId={user?.id ?? ""}
                     currentUserName={user?.user_metadata?.display_name ?? "You"}
+                    application={a}
                     onMove={(s) => moveStatus(a.id, s, a.talent_id)}
                   />
                 )}
@@ -238,6 +240,7 @@ function ExpandedPanel({
   status,
   currentUserId,
   currentUserName,
+  application,
   onMove,
 }: {
   applicationId: string;
@@ -245,13 +248,21 @@ function ExpandedPanel({
   status: ApplicationStatus;
   currentUserId: string;
   currentUserName: string;
+  application: { talent_id: string; job?: { title?: string; company?: { company_name?: string | null; display_name?: string | null } | null } | null };
   onMove: (status: ApplicationStatus) => void;
 }) {
+  const router = useRouter();
+  const { user: currentUser } = useAuth();
   const [votes, setVotes] = useState<CandidateVote[]>([]);
   const [notes, setNotes] = useState<CandidateNote[]>([]);
   const [draft, setDraft] = useState("");
   const [postingNote, setPostingNote] = useState(false);
   const [votingAs, setVotingAs] = useState<Vote | null>(null);
+
+  const companyName =
+    application.job?.company?.company_name ??
+    application.job?.company?.display_name ??
+    "The company";
 
   const loadData = useCallback(async () => {
     const [v, n] = await Promise.all([
@@ -399,9 +410,28 @@ function ExpandedPanel({
         >
           View profile
         </Link>
+        <button
+          onClick={async () => {
+            if (!currentUser) return;
+            const conv = await getOrCreateConversation(currentUser.id, application.talent_id);
+            router.navigate({ to: "/company/inbox", search: { conv: conv.id } } as never);
+          }}
+          className="rounded-md border border-border bg-card px-4 py-2 text-xs hover:bg-accent"
+        >
+          Message
+        </button>
         {status !== "interview" && (
           <button
-            onClick={() => onMove("interview")}
+            onClick={() => {
+              onMove("interview");
+              createNotification({
+                user_id: application.talent_id,
+                kind: "application",
+                title: "You've been moved to interview stage",
+                body: `${companyName} wants to interview you for ${application.job?.title ?? "a role"}.`,
+                link: "/app/applications",
+              }).catch(() => {});
+            }}
             className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
           >
             Move to interview →
@@ -409,7 +439,16 @@ function ExpandedPanel({
         )}
         {status === "interview" && (
           <button
-            onClick={() => onMove("offer")}
+            onClick={() => {
+              onMove("offer");
+              createNotification({
+                user_id: application.talent_id,
+                kind: "application",
+                title: "You have an offer! 🎉",
+                body: `${companyName} has extended you an offer for ${application.job?.title ?? "a role"}.`,
+                link: "/app/applications",
+              }).catch(() => {});
+            }}
             className="rounded-md bg-warm px-4 py-2 text-xs font-medium text-warm-foreground hover:opacity-90"
           >
             Extend offer →

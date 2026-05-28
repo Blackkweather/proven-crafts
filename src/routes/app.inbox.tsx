@@ -1,8 +1,8 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useConversations, useMessages } from "@/lib/hooks";
-import { sendMessage } from "@/lib/db";
+import { sendMessage, createNotification, markMessageRead } from "@/lib/db";
 import type { Conversation } from "@/lib/db";
 
 export const Route = createFileRoute("/app/inbox")({
@@ -22,7 +22,10 @@ function getOtherName(conv: Conversation, userId: string): string {
 function formatTime(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  if (isToday) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 export function InboxPage() {
@@ -33,6 +36,7 @@ export function InboxPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-select conversation from URL ?conv= param (e.g. navigated from matches page)
   useEffect(() => {
@@ -44,13 +48,34 @@ export function InboxPage() {
 
   const { messages, loading: msgsLoading } = useMessages(activeConvId);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Mark unread messages from the other person as read when they appear in view
+  useEffect(() => {
+    if (!user || !messages.length) return;
+    messages
+      .filter((m) => m.sender_id !== user.id && m.read_at === null)
+      .forEach((m) => markMessageRead(m.id).catch(() => {}));
+  }, [messages, user]);
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    if (!draft.trim() || !activeConvId || !user) return;
+    if (!draft.trim() || !activeConvId || !user || !active) return;
     setSending(true);
     setSendError(null);
     try {
       await sendMessage(activeConvId, user.id, draft.trim());
+      const recipientId =
+        active.participant_a === user.id ? active.participant_b : active.participant_a;
+      createNotification({
+        user_id: recipientId,
+        kind: "message",
+        title: "New message",
+        body: draft.trim().slice(0, 80),
+        link: `/app/inbox?conv=${activeConvId}`,
+      }).catch(() => {});
       setDraft("");
     } catch (err) {
       setSendError(err instanceof Error ? err.message : "Failed to send message");
@@ -79,6 +104,8 @@ export function InboxPage() {
             const otherName = user ? getOtherName(c, user.id) : "User";
             const lastMsg = c.last_message?.body ?? "";
             const lastAt = formatTime(c.last_message_at);
+            const hasUnread =
+              c.last_message?.read_at === null && c.last_message?.sender_id !== user?.id;
             return (
               <button
                 key={c.id}
@@ -90,7 +117,12 @@ export function InboxPage() {
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-sm">{otherName}</span>
-                  <span className="text-[10px] text-muted-foreground">{lastAt}</span>
+                  <div className="flex items-center gap-1.5">
+                    {hasUnread && (
+                      <span className="h-2 w-2 rounded-full bg-primary" />
+                    )}
+                    <span className="text-[10px] text-muted-foreground">{lastAt}</span>
+                  </div>
                 </div>
                 <div className="mt-1.5 line-clamp-1 text-sm text-foreground/80">
                   {lastMsg || "No messages yet"}
@@ -109,6 +141,16 @@ export function InboxPage() {
                   <div className="font-display text-lg">
                     {user ? getOtherName(active, user.id) : "Conversation"}
                   </div>
+                  {(() => {
+                    const otherProfile =
+                      user && active.participant_a !== user.id
+                        ? active.profile_a
+                        : active.profile_b;
+                    const headline = otherProfile?.headline;
+                    return headline ? (
+                      <div className="text-xs text-muted-foreground mt-0.5">{headline}</div>
+                    ) : null;
+                  })()}
                 </div>
               </div>
 
@@ -139,6 +181,7 @@ export function InboxPage() {
                     </div>
                   );
                 })}
+                <div ref={messagesEndRef} />
               </div>
 
               {sendError && (
@@ -148,12 +191,20 @@ export function InboxPage() {
               )}
               <form
                 onSubmit={send}
-                className="flex items-center gap-2 border-t border-border bg-paper p-4"
+                className="flex items-end gap-2 border-t border-border bg-paper p-4"
               >
-                <input
+                <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send(e as unknown as React.FormEvent);
+                    }
+                  }}
+                  rows={1}
                   placeholder="Write a message…"
+                  style={{ resize: "none" }}
                   className="flex-1 rounded-md border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                 />
                 <button

@@ -256,13 +256,18 @@ function SubmitDialog({
   const [eval_, setEval] = useState<ChallengeEvalResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+
   function addFiles(incoming: FileList | null) {
     if (!incoming) return;
     const next = [...files];
+    const oversized: string[] = [];
     for (const f of Array.from(incoming)) {
       if (next.length >= 5) break;
+      if (f.size > MAX_FILE_SIZE) { oversized.push(f.name); continue; }
       if (!next.find((x) => x.name === f.name && x.size === f.size)) next.push(f);
     }
+    if (oversized.length > 0) setError(`File(s) too large (max 25 MB): ${oversized.join(", ")}`);
     setFiles(next);
   }
 

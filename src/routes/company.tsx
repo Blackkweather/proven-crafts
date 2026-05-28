@@ -91,9 +91,11 @@ function CompanyLayout() {
           { to: "/company/challenges", label: "Challenges",  icon: Icons.bolt      },
           { to: "/company/candidates", label: "Pipeline",    icon: Icons.users     },
           { to: "/company/talent",     label: "Find Talent", icon: Icons.search    },
-          { to: "/company/inbox",      label: "Inbox",       icon: Icons.inbox,    badgeKey: "messages" as const },
+          { to: "/company/inbox",         label: "Inbox",         icon: Icons.inbox,      badgeKey: "messages" as const },
+          { to: "/company/notifications", label: "Notifications", icon: Icons.bell,       badgeKey: "notifications" as const },
+          { to: "/company/matches",       label: "Matches",       icon: Icons.handshake },
           { to: "/company/analytics",  label: "Analytics",   icon: Icons.chart     },
-          { to: "/company/billing",    label: "Billing",     icon: Icons.bolt      },
+          { to: "/company/billing",    label: "Billing",     icon: Icons.card      },
           { to: "/company/settings",   label: "Settings",    icon: Icons.gear      },
         ]}
       >

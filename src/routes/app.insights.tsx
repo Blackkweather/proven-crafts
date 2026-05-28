@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useProfile, useMarketRates } from "@/lib/hooks";
-import { fetchProfileViewCount, fetchShortlistCount } from "@/lib/db";
-import type { MarketRate } from "@/lib/db";
+import { fetchProfileViewCount, fetchShortlistCount, fetchReferralStats } from "@/lib/db";
+import type { MarketRate, ReferralStats } from "@/lib/db";
 
 export const Route = createFileRoute("/app/insights")({
   component: InsightsPage,
@@ -15,6 +15,7 @@ function InsightsPage() {
   const { rates, loading: ratesLoading } = useMarketRates();
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [shortlistCount, setShortlistCount] = useState<number | null>(null);
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -24,6 +25,9 @@ function InsightsPage() {
     fetchShortlistCount(user.id)
       .then(setShortlistCount)
       .catch(() => setShortlistCount(null));
+    fetchReferralStats(user.id)
+      .then(setReferralStats)
+      .catch(() => setReferralStats(null));
   }, [user?.id]);
 
   const loading = profileLoading || ratesLoading;
@@ -175,6 +179,54 @@ function InsightsPage() {
           </div>
         </section>
       )}
+
+      {/* Referral programme */}
+      <section>
+        <h2 className="font-display text-2xl">Refer & earn</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Share your invite link. When someone joins and completes their profile, you both move up the priority queue.
+        </p>
+        <div className="mt-5 rounded-2xl border border-border bg-card p-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="surface-paper rounded-xl p-4 text-center">
+              <div className="font-display text-3xl">{referralStats?.total_referrals ?? 0}</div>
+              <div className="mt-1 text-xs text-muted-foreground">Invited</div>
+            </div>
+            <div className="surface-paper rounded-xl p-4 text-center">
+              <div className="font-display text-3xl">{referralStats?.converted_referrals ?? 0}</div>
+              <div className="mt-1 text-xs text-muted-foreground">Joined</div>
+            </div>
+            <div className="surface-paper rounded-xl p-4 text-center">
+              <div className="font-display text-3xl text-primary">
+                {referralStats && referralStats.total_referrals > 0
+                  ? `${Math.round((referralStats.converted_referrals / referralStats.total_referrals) * 100)}%`
+                  : "—"}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">Conversion</div>
+            </div>
+          </div>
+
+          {profile?.referral_code && (
+            <div className="mt-5">
+              <div className="mb-1.5 text-xs font-medium text-muted-foreground">Your invite link</div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-md border border-border bg-paper px-3 py-2 text-sm truncate">
+                  {typeof window !== "undefined" ? window.location.origin : "https://skillnetwork.app"}/signup?ref={profile.referral_code}
+                </code>
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/signup?ref=${profile.referral_code}`;
+                    navigator.clipboard.writeText(link).catch(() => {});
+                  }}
+                  className="shrink-0 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-accent transition-colors"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Tips */}
       <section>
