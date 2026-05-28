@@ -124,6 +124,39 @@ export type Database = {
           },
         ]
       }
+      brand_presets: {
+        Row: {
+          clerk_user_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          settings: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          clerk_user_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          settings?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          clerk_user_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          settings?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       candidate_notes: {
         Row: {
           application_id: string
@@ -224,6 +257,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      carousel_projects: {
+        Row: {
+          clerk_user_id: string
+          created_at: string | null
+          id: string
+          slides: Json | null
+          status: string
+          style_preset: string
+          topic: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          clerk_user_id: string
+          created_at?: string | null
+          id?: string
+          slides?: Json | null
+          status?: string
+          style_preset?: string
+          topic: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          clerk_user_id?: string
+          created_at?: string | null
+          id?: string
+          slides?: Json | null
+          status?: string
+          style_preset?: string
+          topic?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       challenges: {
         Row: {
@@ -409,6 +478,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      generated_posts: {
+        Row: {
+          clerk_user_id: string
+          created_at: string | null
+          id: string
+          image_url: string | null
+          prompt: string
+          settings: Json | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          clerk_user_id: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          prompt: string
+          settings?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          clerk_user_id?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          prompt?: string
+          settings?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       jobs: {
         Row: {
@@ -957,6 +1062,39 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_library: {
+        Row: {
+          category: string | null
+          clerk_user_id: string
+          created_at: string | null
+          id: string
+          prompt: string
+          tags: string[] | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          clerk_user_id: string
+          created_at?: string | null
+          id?: string
+          prompt: string
+          tags?: string[] | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          clerk_user_id?: string
+          created_at?: string | null
+          id?: string
+          prompt?: string
+          tags?: string[] | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           code: string
@@ -1227,6 +1365,41 @@ export type Database = {
           },
         ]
       }
+      team_comments: {
+        Row: {
+          clerk_user_id: string
+          content: string
+          created_at: string | null
+          id: string
+          post_id: string | null
+          user_id: string
+        }
+        Insert: {
+          clerk_user_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id: string
+        }
+        Update: {
+          clerk_user_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "generated_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1405,6 +1578,8 @@ export type Database = {
           social_handle: string
         }[]
       }
+      get_featured_talent: { Args: never; Returns: Json }
+      get_platform_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

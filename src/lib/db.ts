@@ -1852,35 +1852,18 @@ export interface PlatformStats {
 }
 
 export async function fetchPlatformStats(): Promise<PlatformStats> {
-  const [talentRes, companyRes, jobsRes, openChallRes, closedChallRes, skillsRes] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("account_type", "talent"),
-      supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("account_type", "company"),
-      supabase.from("jobs").select("*", { count: "exact", head: true }).eq("status", "open"),
-      supabase
-        .from("challenges")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "open"),
-      supabase
-        .from("challenges")
-        .select("*", { count: "exact", head: true })
-        .neq("status", "open"),
-      supabase.from("skills").select("*", { count: "exact", head: true }),
-    ]);
-
+  // Uses a SECURITY DEFINER RPC so unauthenticated visitors on public pages
+  // still get real counts (direct table queries return 0 for anon due to RLS).
+  const { data, error } = await supabase.rpc("get_platform_stats");
+  if (error) throw new Error(error.message);
+  const d = data as PlatformStats;
   return {
-    talentCount: talentRes.count ?? 0,
-    companyCount: companyRes.count ?? 0,
-    openJobsCount: jobsRes.count ?? 0,
-    openChallengesCount: openChallRes.count ?? 0,
-    closedChallengesCount: closedChallRes.count ?? 0,
-    totalSkillsCount: skillsRes.count ?? 0,
+    talentCount: d.talentCount ?? 0,
+    companyCount: d.companyCount ?? 0,
+    openJobsCount: d.openJobsCount ?? 0,
+    openChallengesCount: d.openChallengesCount ?? 0,
+    closedChallengesCount: d.closedChallengesCount ?? 0,
+    totalSkillsCount: d.totalSkillsCount ?? 0,
   };
 }
 
@@ -1903,35 +1886,20 @@ export interface FeaturedTalent {
  * DATABASE: reads profiles, skills, and portfolio_items tables.
  */
 export async function fetchFeaturedTalent(): Promise<FeaturedTalent | null> {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, display_name, headline, bio, avatar_url, challenge_wins, completeness_pct")
-    .eq("account_type", "talent")
-    .neq("bio", "")
-    .neq("headline", "")
-    .order("completeness_pct", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!profile) return null;
-
-  const [skillsRes, portfolioRes] = await Promise.all([
-    supabase.from("skills").select("name, level").eq("profile_id", profile.id).limit(5),
-    supabase
-      .from("portfolio_items")
-      .select("id", { count: "exact", head: true })
-      .eq("profile_id", profile.id),
-  ]);
-
+  // Uses a SECURITY DEFINER RPC so the landing page (anon visitors) can load
+  // a real talent card despite RLS blocking direct profile reads for anon.
+  const { data, error } = await supabase.rpc("get_featured_talent");
+  if (error || !data) return null;
+  const d = data as FeaturedTalent;
   return {
-    id: profile.id,
-    display_name: profile.display_name,
-    headline: (profile.headline as string) ?? "",
-    bio: (profile.bio as string) ?? "",
-    avatar_url: profile.avatar_url,
-    challenge_wins: (profile.challenge_wins as number) ?? 0,
-    portfolio_count: portfolioRes.count ?? 0,
-    skills: (skillsRes.data ?? []) as { name: string; level: string }[],
+    id: d.id,
+    display_name: d.display_name,
+    headline: d.headline ?? "",
+    bio: d.bio ?? "",
+    avatar_url: d.avatar_url,
+    challenge_wins: d.challenge_wins ?? 0,
+    portfolio_count: d.portfolio_count ?? 0,
+    skills: d.skills ?? [],
   };
 }
 
