@@ -256,8 +256,6 @@ function SubmitDialog({
   const [eval_, setEval] = useState<ChallengeEvalResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
-
   function addFiles(incoming: FileList | null) {
     if (!incoming) return;
     const next = [...files];
@@ -520,7 +518,8 @@ function SubmitDialog({
   );
 }
 
-// Shared CSS class string for all text inputs/textareas in the dialog.
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
 const inputCls =
   "w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
 

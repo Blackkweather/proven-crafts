@@ -14,7 +14,11 @@ const kindMeta = {
   challenge: { label: "Challenge", color: "bg-accent text-foreground border-border" },
 };
 
-function NotificationsPage() {
+export function NotificationsPage({
+  emptyStateBody = "Notifications appear here when companies match, message, or respond to you.",
+}: {
+  emptyStateBody?: string;
+} = {}) {
   const { user } = useAuth();
   const { notifications, loading, error, unreadCount, markAllRead, setNotifications } = useNotifications(user?.id);
 
@@ -56,9 +60,7 @@ function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-border p-12 text-center">
           <div className="font-display text-xl text-muted-foreground">All caught up</div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Notifications appear here when companies match, message, or respond to you.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{emptyStateBody}</p>
         </div>
       ) : (
         <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-card">

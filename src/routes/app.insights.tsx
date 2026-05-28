@@ -19,15 +19,15 @@ function InsightsPage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    fetchProfileViewCount(user.id)
-      .then(setViewCount)
-      .catch(() => setViewCount(null));
-    fetchShortlistCount(user.id)
-      .then(setShortlistCount)
-      .catch(() => setShortlistCount(null));
-    fetchReferralStats(user.id)
-      .then(setReferralStats)
-      .catch(() => setReferralStats(null));
+    Promise.all([
+      fetchProfileViewCount(user.id).catch(() => null),
+      fetchShortlistCount(user.id).catch(() => null),
+      fetchReferralStats(user.id).catch(() => null),
+    ]).then(([vc, sc, rs]) => {
+      setViewCount(vc);
+      setShortlistCount(sc);
+      setReferralStats(rs);
+    });
   }, [user?.id]);
 
   const loading = profileLoading || ratesLoading;

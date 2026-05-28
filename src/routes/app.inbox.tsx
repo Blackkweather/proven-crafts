@@ -19,6 +19,11 @@ function getOtherName(conv: Conversation, userId: string): string {
   return conv.profile_b?.display_name ?? "User";
 }
 
+function getOtherHeadline(conv: Conversation, userId: string): string | null {
+  const other = conv.participant_a !== userId ? conv.profile_a : conv.profile_b;
+  return other?.headline ?? null;
+}
+
 function formatTime(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -52,12 +57,11 @@ export function InboxPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Mark unread messages from the other person as read when they appear in view
   useEffect(() => {
     if (!user || !messages.length) return;
-    messages
-      .filter((m) => m.sender_id !== user.id && m.read_at === null)
-      .forEach((m) => markMessageRead(m.id).catch(() => {}));
+    const unread = messages.filter((m) => m.sender_id !== user.id && m.read_at === null);
+    if (unread.length === 0) return;
+    unread.forEach((m) => markMessageRead(m.id).catch(() => {}));
   }, [messages, user]);
 
   async function send(e: React.FormEvent) {
@@ -141,16 +145,11 @@ export function InboxPage() {
                   <div className="font-display text-lg">
                     {user ? getOtherName(active, user.id) : "Conversation"}
                   </div>
-                  {(() => {
-                    const otherProfile =
-                      user && active.participant_a !== user.id
-                        ? active.profile_a
-                        : active.profile_b;
-                    const headline = otherProfile?.headline;
-                    return headline ? (
-                      <div className="text-xs text-muted-foreground mt-0.5">{headline}</div>
-                    ) : null;
-                  })()}
+                  {user && getOtherHeadline(active, user.id) && (
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {getOtherHeadline(active, user.id)}
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -10,6 +10,9 @@ export const Route = createFileRoute("/company/jobs")({
 
 const ARRANGEMENTS = ["Remote", "Hybrid", "Onsite"] as const;
 
+const inputCls =
+  "w-full rounded-md border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
+
 function JobsPanel() {
   const { user } = useAuth();
   const { jobs, loading, refetch } = useJobs(undefined);
@@ -129,9 +132,9 @@ function JobsPanel() {
       </div>
 
       {creating && user && (
-        <CreateRoleModal
+        <RoleModal
           onClose={() => setCreating(false)}
-          onCreate={async (data) => {
+          onSubmit={async (data) => {
             await createJob(user.id, data);
             await refetch();
             setCreating(false);
@@ -140,10 +143,10 @@ function JobsPanel() {
       )}
 
       {editing && (
-        <EditRoleModal
-          job={editing}
+        <RoleModal
+          initialJob={editing}
           onClose={() => setEditing(null)}
-          onSave={async (data) => {
+          onSubmit={async (data) => {
             await updateJob(editing.id, data);
             await refetch();
             setEditing(null);
@@ -154,19 +157,22 @@ function JobsPanel() {
   );
 }
 
-function CreateRoleModal({
+function RoleModal({
+  initialJob,
   onClose,
-  onCreate,
+  onSubmit,
 }: {
+  initialJob?: Job;
   onClose: () => void;
-  onCreate: (data: JobInput) => Promise<void>;
+  onSubmit: (data: JobInput) => Promise<void>;
 }) {
-  const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("Remote");
-  const [arrangement, setArrangement] = useState<"Remote" | "Hybrid" | "Onsite">("Remote");
-  const [comp, setComp] = useState("");
-  const [summary, setSummary] = useState("");
-  const [skills, setSkills] = useState("");
+  const isEdit = initialJob != null;
+  const [title, setTitle] = useState(initialJob?.title ?? "");
+  const [location, setLocation] = useState(initialJob?.location ?? "Remote");
+  const [arrangement, setArrangement] = useState<"Remote" | "Hybrid" | "Onsite">(initialJob?.arrangement ?? "Remote");
+  const [comp, setComp] = useState(initialJob?.comp ?? "");
+  const [summary, setSummary] = useState(initialJob?.summary ?? "");
+  const [skills, setSkills] = useState(initialJob ? initialJob.required_skills.join(", ") : "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -175,26 +181,20 @@ function CreateRoleModal({
     setSubmitting(true);
     setError(null);
     try {
-      await onCreate({
+      await onSubmit({
         title: title.trim(),
         location,
         arrangement,
         comp,
         summary,
-        required_skills: skills
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        status: "open",
+        required_skills: skills.split(",").map((s) => s.trim()).filter(Boolean),
+        status: isEdit ? initialJob!.status : "open",
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create role.");
+      setError(err instanceof Error ? err.message : isEdit ? "Failed to save changes." : "Failed to create role.");
       setSubmitting(false);
     }
   }
-
-  const inputCls =
-    "w-full rounded-md border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
 
   return (
     <div
@@ -206,9 +206,11 @@ function CreateRoleModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Post a new role
+          {isEdit ? "Edit role" : "Post a new role"}
         </div>
-        <h2 className="mt-2 font-display text-2xl">Bring a role to the network.</h2>
+        <h2 className="mt-2 font-display text-2xl">
+          {isEdit ? "Update role details." : "Bring a role to the network."}
+        </h2>
 
         <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -220,7 +222,7 @@ function CreateRoleModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                placeholder="Staff Frontend Engineer"
+                placeholder={isEdit ? undefined : "Staff Frontend Engineer"}
                 className={inputCls}
               />
             </div>
@@ -231,7 +233,7 @@ function CreateRoleModal({
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Berlin / Remote"
+                placeholder={isEdit ? undefined : "Berlin / Remote"}
                 className={inputCls}
               />
             </div>
@@ -259,7 +261,7 @@ function CreateRoleModal({
               <input
                 value={comp}
                 onChange={(e) => setComp(e.target.value)}
-                placeholder="€80–100k"
+                placeholder={isEdit ? undefined : "€80–100k"}
                 className={inputCls}
               />
             </div>
@@ -276,7 +278,7 @@ function CreateRoleModal({
               className={inputCls}
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Comma separated — used for match scoring.
+              {isEdit ? "Comma separated." : "Comma separated — used for match scoring."}
             </p>
           </div>
 
@@ -288,7 +290,7 @@ function CreateRoleModal({
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               rows={3}
-              placeholder="What makes this role exciting?"
+              placeholder={isEdit ? undefined : "What makes this role exciting?"}
               className={`${inputCls} resize-none`}
             />
           </div>
@@ -307,165 +309,7 @@ function CreateRoleModal({
               disabled={submitting}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
-              {submitting ? "Publishing…" : "Publish role"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function EditRoleModal({
-  job,
-  onClose,
-  onSave,
-}: {
-  job: Job;
-  onClose: () => void;
-  onSave: (data: Partial<JobInput>) => Promise<void>;
-}) {
-  const [title, setTitle] = useState(job.title);
-  const [location, setLocation] = useState(job.location);
-  const [arrangement, setArrangement] = useState<"Remote" | "Hybrid" | "Onsite">(job.arrangement);
-  const [comp, setComp] = useState(job.comp);
-  const [summary, setSummary] = useState(job.summary);
-  const [skills, setSkills] = useState(job.required_skills.join(", "));
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    try {
-      await onSave({
-        title: title.trim(),
-        location,
-        arrangement,
-        comp,
-        summary,
-        required_skills: skills
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        status: job.status,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save changes.");
-      setSubmitting(false);
-    }
-  }
-
-  const inputCls =
-    "w-full rounded-md border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
-
-  return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-foreground/40 p-4 animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-xl rounded-2xl bg-background p-8 shadow-elevated"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Edit role
-        </div>
-        <h2 className="mt-2 font-display text-2xl">Update role details.</h2>
-
-        <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                Title *
-              </label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                Location
-              </label>
-              <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                Arrangement
-              </label>
-              <select
-                value={arrangement}
-                onChange={(e) => setArrangement(e.target.value as typeof arrangement)}
-                className={inputCls}
-              >
-                {ARRANGEMENTS.map((a) => (
-                  <option key={a}>{a}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                Compensation
-              </label>
-              <input
-                value={comp}
-                onChange={(e) => setComp(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              Required skills
-            </label>
-            <input
-              value={skills}
-              onChange={(e) => setSkills(e.target.value)}
-              placeholder="React, TypeScript, Design Systems"
-              className={inputCls}
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">Comma separated.</p>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              Summary
-            </label>
-            <textarea
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              rows={3}
-              className={`${inputCls} resize-none`}
-            />
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-border bg-card px-4 py-2 text-sm hover:bg-accent"
-            >
-              Cancel
-            </button>
-            <button
-              disabled={submitting}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-            >
-              {submitting ? "Saving…" : "Save changes"}
+              {submitting ? (isEdit ? "Saving…" : "Publishing…") : (isEdit ? "Save changes" : "Publish role")}
             </button>
           </div>
         </form>
