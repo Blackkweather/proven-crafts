@@ -34,11 +34,15 @@ import { Route as TalentTalentIdRouteImport } from './routes/talent.$talentId'
 import { Route as OnboardingTalentRouteImport } from './routes/onboarding.talent'
 import { Route as OnboardingCompanyRouteImport } from './routes/onboarding.company'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as CompanyTalentRouteImport } from './routes/company.talent'
+import { Route as CompanySettingsRouteImport } from './routes/company.settings'
 import { Route as CompanyJobsRouteImport } from './routes/company.jobs'
 import { Route as CompanyInboxRouteImport } from './routes/company.inbox'
 import { Route as CompanyChallengesRouteImport } from './routes/company.challenges'
 import { Route as CompanyCandidatesRouteImport } from './routes/company.candidates'
+import { Route as CompanyBillingRouteImport } from './routes/company.billing'
+import { Route as CompanyAnalyticsRouteImport } from './routes/company.analytics'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as ChallengesChallengeIdRouteImport } from './routes/challenges.$challengeId'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
@@ -180,9 +184,19 @@ const JobsJobIdRoute = JobsJobIdRouteImport.update({
   path: '/jobs/$jobId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompanyTalentRoute = CompanyTalentRouteImport.update({
   id: '/talent',
   path: '/talent',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const CompanySettingsRoute = CompanySettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => CompanyRoute,
 } as any)
 const CompanyJobsRoute = CompanyJobsRouteImport.update({
@@ -203,6 +217,16 @@ const CompanyChallengesRoute = CompanyChallengesRouteImport.update({
 const CompanyCandidatesRoute = CompanyCandidatesRouteImport.update({
   id: '/candidates',
   path: '/candidates',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const CompanyBillingRoute = CompanyBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => CompanyRoute,
+} as any)
+const CompanyAnalyticsRoute = CompanyAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => CompanyRoute,
 } as any)
 const CompaniesCompanyIdRoute = CompaniesCompanyIdRouteImport.update({
@@ -315,11 +339,15 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
+  '/company/analytics': typeof CompanyAnalyticsRoute
+  '/company/billing': typeof CompanyBillingRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/settings': typeof CompanySettingsRoute
   '/company/talent': typeof CompanyTalentRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/onboarding/company': typeof OnboardingCompanyRoute
   '/onboarding/talent': typeof OnboardingTalentRoute
@@ -359,11 +387,15 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
+  '/company/analytics': typeof CompanyAnalyticsRoute
+  '/company/billing': typeof CompanyBillingRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/settings': typeof CompanySettingsRoute
   '/company/talent': typeof CompanyTalentRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/onboarding/company': typeof OnboardingCompanyRoute
   '/onboarding/talent': typeof OnboardingTalentRoute
@@ -407,11 +439,15 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
+  '/company/analytics': typeof CompanyAnalyticsRoute
+  '/company/billing': typeof CompanyBillingRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/challenges': typeof CompanyChallengesRoute
   '/company/inbox': typeof CompanyInboxRoute
   '/company/jobs': typeof CompanyJobsRoute
+  '/company/settings': typeof CompanySettingsRoute
   '/company/talent': typeof CompanyTalentRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/onboarding/company': typeof OnboardingCompanyRoute
   '/onboarding/talent': typeof OnboardingTalentRoute
@@ -456,11 +492,15 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/challenges/$challengeId'
     | '/companies/$companyId'
+    | '/company/analytics'
+    | '/company/billing'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/settings'
     | '/company/talent'
+    | '/invite/$code'
     | '/jobs/$jobId'
     | '/onboarding/company'
     | '/onboarding/talent'
@@ -500,11 +540,15 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/challenges/$challengeId'
     | '/companies/$companyId'
+    | '/company/analytics'
+    | '/company/billing'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/settings'
     | '/company/talent'
+    | '/invite/$code'
     | '/jobs/$jobId'
     | '/onboarding/company'
     | '/onboarding/talent'
@@ -547,11 +591,15 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/challenges/$challengeId'
     | '/companies/$companyId'
+    | '/company/analytics'
+    | '/company/billing'
     | '/company/candidates'
     | '/company/challenges'
     | '/company/inbox'
     | '/company/jobs'
+    | '/company/settings'
     | '/company/talent'
+    | '/invite/$code'
     | '/jobs/$jobId'
     | '/onboarding/company'
     | '/onboarding/talent'
@@ -580,6 +628,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   TalentRoute: typeof TalentRouteWithChildren
+  InviteCodeRoute: typeof InviteCodeRoute
   JobsJobIdRoute: typeof JobsJobIdRoute
 }
 
@@ -760,11 +809,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JobsJobIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/company/talent': {
       id: '/company/talent'
       path: '/talent'
       fullPath: '/company/talent'
       preLoaderRoute: typeof CompanyTalentRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/company/settings': {
+      id: '/company/settings'
+      path: '/settings'
+      fullPath: '/company/settings'
+      preLoaderRoute: typeof CompanySettingsRouteImport
       parentRoute: typeof CompanyRoute
     }
     '/company/jobs': {
@@ -793,6 +856,20 @@ declare module '@tanstack/react-router' {
       path: '/candidates'
       fullPath: '/company/candidates'
       preLoaderRoute: typeof CompanyCandidatesRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/company/billing': {
+      id: '/company/billing'
+      path: '/billing'
+      fullPath: '/company/billing'
+      preLoaderRoute: typeof CompanyBillingRouteImport
+      parentRoute: typeof CompanyRoute
+    }
+    '/company/analytics': {
+      id: '/company/analytics'
+      path: '/analytics'
+      fullPath: '/company/analytics'
+      preLoaderRoute: typeof CompanyAnalyticsRouteImport
       parentRoute: typeof CompanyRoute
     }
     '/companies/$companyId': {
@@ -974,19 +1051,25 @@ const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
 )
 
 interface CompanyRouteChildren {
+  CompanyAnalyticsRoute: typeof CompanyAnalyticsRoute
+  CompanyBillingRoute: typeof CompanyBillingRoute
   CompanyCandidatesRoute: typeof CompanyCandidatesRoute
   CompanyChallengesRoute: typeof CompanyChallengesRoute
   CompanyInboxRoute: typeof CompanyInboxRoute
   CompanyJobsRoute: typeof CompanyJobsRoute
+  CompanySettingsRoute: typeof CompanySettingsRoute
   CompanyTalentRoute: typeof CompanyTalentRoute
   CompanyIndexRoute: typeof CompanyIndexRoute
 }
 
 const CompanyRouteChildren: CompanyRouteChildren = {
+  CompanyAnalyticsRoute: CompanyAnalyticsRoute,
+  CompanyBillingRoute: CompanyBillingRoute,
   CompanyCandidatesRoute: CompanyCandidatesRoute,
   CompanyChallengesRoute: CompanyChallengesRoute,
   CompanyInboxRoute: CompanyInboxRoute,
   CompanyJobsRoute: CompanyJobsRoute,
+  CompanySettingsRoute: CompanySettingsRoute,
   CompanyTalentRoute: CompanyTalentRoute,
   CompanyIndexRoute: CompanyIndexRoute,
 }
@@ -1038,6 +1121,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   TalentRoute: TalentRouteWithChildren,
+  InviteCodeRoute: InviteCodeRoute,
   JobsJobIdRoute: JobsJobIdRoute,
 }
 export const routeTree = rootRouteImport

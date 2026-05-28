@@ -22,11 +22,46 @@
 // =============================================================================
 
 import { Link, useRouter, useLocation } from "@tanstack/react-router";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, Component, type ErrorInfo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useUnreadCounts } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+
+class PageErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[PageErrorBoundary]", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="font-display text-2xl text-foreground">Something went wrong</div>
+          <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+            An unexpected error occurred on this page. Try refreshing, or contact support if the problem persists.
+          </p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="mt-6 rounded-lg border border-border bg-card px-4 py-2 text-sm hover:bg-accent"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // -----------------------------------------------------------------------------
 // TYPE — NavItem
@@ -319,7 +354,7 @@ export function DashboardShell({
         {/* DASHBOARD: Child route components render here via <Outlet />.
             animate-fade-up gives a smooth entrance on every route transition. */}
         <main className="flex-1 animate-fade-up px-4 py-6 lg:px-8 lg:py-8">
-          {children}
+          <PageErrorBoundary>{children}</PageErrorBoundary>
         </main>
       </div>
     </div>

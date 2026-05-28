@@ -1,23 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useProfile, useJobs, useChallenges, useNotifications } from "@/lib/hooks";
 import { SkillTag } from "@/components/skill-tag";
 import { MatchBar, MatchScore } from "@/components/match-score";
+import { calcMatch, daysLeft } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/")({
   component: Overview,
 });
-
-function calcMatch(required: string[], userSkills: { name: string }[]): number {
-  if (!required || required.length === 0) return 0;
-  const userSkillNames = userSkills.map((s) => s.name.toLowerCase());
-  const matched = required.filter((r) => userSkillNames.includes(r.toLowerCase())).length;
-  return Math.round((matched / required.length) * 100);
-}
-
-function daysLeft(deadline_at: string): number {
-  return Math.max(0, Math.ceil((new Date(deadline_at).getTime() - Date.now()) / 86400000));
-}
 
 function Overview() {
   const { user } = useAuth();
@@ -28,19 +19,27 @@ function Overview() {
 
   const userSkills = skills ?? [];
 
-  const matchedJobs = jobs
-    ? jobs
-        .map((j) => ({ ...j, score: calcMatch(j.required_skills ?? [], userSkills) }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
-    : [];
+  const matchedJobs = useMemo(
+    () =>
+      jobs
+        ? jobs
+            .map((j) => ({ ...j, score: calcMatch(j.required_skills ?? [], userSkills) }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3)
+        : [],
+    [jobs, userSkills],
+  );
 
-  const matchedChallenges = challenges
-    ? challenges
-        .map((c) => ({ ...c, score: calcMatch(c.required_skills ?? [], userSkills) }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 2)
-    : [];
+  const matchedChallenges = useMemo(
+    () =>
+      challenges
+        ? challenges
+            .map((c) => ({ ...c, score: calcMatch(c.required_skills ?? [], userSkills) }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 2)
+        : [],
+    [challenges, userSkills],
+  );
 
   const completeness = profile?.completeness_pct ?? 0;
 
@@ -101,7 +100,8 @@ function Overview() {
                 return (
                   <Link
                     key={j.id}
-                    to="/app/jobs"
+                    to="/jobs/$jobId"
+                    params={{ jobId: j.id }}
                     className="group block rounded-2xl border border-border bg-card p-5 transition-all hover:border-foreground/20 hover:shadow-soft"
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -159,7 +159,8 @@ function Overview() {
                 return (
                   <Link
                     key={c.id}
-                    to="/app/challenges"
+                    to="/challenges/$challengeId"
+                    params={{ challengeId: c.id }}
                     className="group rounded-2xl border border-border bg-foreground p-5 text-background transition-all hover:shadow-elevated"
                   >
                     <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-background/60">
@@ -207,6 +208,9 @@ function Overview() {
             )}
           </div>
         </div>
+        {/* Referral widget */}
+        <ReferralWidget referralCode={profile?.referral_code ?? null} loading={profileLoading} />
+
         <div className="surface-paper rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -246,6 +250,47 @@ function Overview() {
           </ul>
         </div>
       </aside>
+    </div>
+  );
+}
+
+function ReferralWidget({ referralCode, loading }: { referralCode: string | null; loading: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const link = referralCode ? `${baseUrl}/invite/${referralCode}` : null;
+
+  function copy() {
+    if (!link) return;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="surface-paper rounded-2xl p-5">
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        Invite friends
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Share your link. Every person who joins via your link strengthens the network.
+      </p>
+      {loading ? (
+        <div className="mt-3 h-9 animate-pulse rounded-lg bg-muted" />
+      ) : link ? (
+        <div className="mt-3 flex gap-2">
+          <input
+            readOnly
+            value={link}
+            className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
+          />
+          <button
+            onClick={copy}
+            className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium hover:bg-accent"
+          >
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

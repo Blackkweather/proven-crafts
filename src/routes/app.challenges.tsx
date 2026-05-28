@@ -3,21 +3,11 @@ import { useAuth } from "@/lib/auth";
 import { useProfile, useChallenges } from "@/lib/hooks";
 import { getAIMatchScore } from "@/lib/ai";
 import { useState } from "react";
+import { calcMatch, daysLeft } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/challenges")({
   component: ChallengesPage,
 });
-
-function calcMatch(required: string[], userSkills: { name: string }[]): number {
-  if (!required || required.length === 0) return 0;
-  const userSkillNames = userSkills.map((s) => s.name.toLowerCase());
-  const matched = required.filter((r) => userSkillNames.includes(r.toLowerCase())).length;
-  return Math.round((matched / required.length) * 100);
-}
-
-function daysLeft(deadline_at: string): number {
-  return Math.max(0, Math.ceil((new Date(deadline_at).getTime() - Date.now()) / 86400000));
-}
 
 function ChallengesPage() {
   const { user } = useAuth();

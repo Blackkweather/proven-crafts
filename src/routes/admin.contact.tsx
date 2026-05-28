@@ -11,6 +11,8 @@ function AdminContact() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     let cancelled = false;
@@ -53,7 +55,7 @@ function AdminContact() {
         </div>
       ) : (
         <div className="mt-6 space-y-3">
-          {items.map((s) => {
+          {items.slice(0, page * PAGE_SIZE).map((s) => {
             const open = expanded === s.id;
             const age = formatAge(s.created_at);
             return (
@@ -96,6 +98,17 @@ function AdminContact() {
               </article>
             );
           })}
+        </div>
+      )}
+
+      {items.length > page * PAGE_SIZE && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+          >
+            Load more ({items.length - page * PAGE_SIZE} remaining)
+          </button>
         </div>
       )}
     </div>

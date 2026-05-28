@@ -45,6 +45,13 @@ const SERVICES: Record<string, string> = {
   "/talent": process.env.TALENT_SERVICE_URL ?? "http://localhost:3003",
   "/challenges": process.env.CHALLENGE_SERVICE_URL ?? "http://localhost:3004",
   "/messages": process.env.MESSAGING_SERVICE_URL ?? "http://localhost:3005",
+  "/billing": process.env.BILLING_SERVICE_URL ?? "http://localhost:3006",
+  "/analytics": process.env.ANALYTICS_SERVICE_URL ?? "http://localhost:3007",
+  "/ai": process.env.AI_SERVICE_URL ?? "http://localhost:3008",
+  "/admin": process.env.ADMIN_SERVICE_URL ?? "http://localhost:3009",
+  "/storage": process.env.STORAGE_SERVICE_URL ?? "http://localhost:3010",
+  "/referral": process.env.REFERRAL_SERVICE_URL ?? "http://localhost:3011",
+  "/contact": process.env.CONTACT_SERVICE_URL ?? "http://localhost:3012",
 };
 
 // Create the Fastify server with structured JSON logging
@@ -146,7 +153,7 @@ app.all("/*", async (request, reply) => {
 });
 
 // Start the server — listen on all interfaces (0.0.0.0) so it's accessible in containers
-app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+app.listen({ port: PORT, host: "127.0.0.1" }, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1);

@@ -28,6 +28,7 @@ import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/hooks";
 import { SkillTag } from "@/components/skill-tag";
 import { MatchScore } from "@/components/match-score";
+import { calcMatch } from "@/lib/utils";
 
 // NAVIGATION: Dynamic route — "/jobs/:jobId" with a loader and SEO head.
 export const Route = createFileRoute("/jobs/$jobId")({
@@ -76,15 +77,6 @@ export const Route = createFileRoute("/jobs/$jobId")({
   ),
 });
 
-// Calculates how many of the required skills the current user has (as a %).
-// Returns 0 if there are no required skills.
-function matchScore(required: string[], mySkills: string[]): number {
-  if (!required.length) return 0;
-  const names = mySkills.map((s) => s.toLowerCase());
-  const matched = required.filter((r) => names.includes(r.toLowerCase())).length;
-  return Math.round((matched / required.length) * 100);
-}
-
 function JobDetail() {
   // DATABASE: Get the pre-loaded job data from the route loader.
   const { job } = Route.useLoaderData();
@@ -101,14 +93,7 @@ function JobDetail() {
 
   const company = job.company;
 
-  // Calculate the percentage of required skills the viewer already has.
-  const score = matchScore(
-    job.required_skills,
-    skills.map((s) => s.name),
-  );
-
-  // peers is unused in the current implementation; placeholder for future feature.
-  const peers: never[] = [];
+  const score = calcMatch(job.required_skills, skills);
 
   return (
     <div className="min-h-dvh bg-background">

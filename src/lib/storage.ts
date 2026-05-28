@@ -238,7 +238,7 @@ export async function uploadVideoIntro(userId: string, file: File): Promise<stri
 
   const timestamp = Date.now();
   const safeName = sanitiseFilename(file.name);
-  const path = `video-intros/${userId}/${timestamp}-${safeName}`;
+  const path = `${userId}/video-intros/${timestamp}-${safeName}`;
 
   const { error: uploadError } = await supabase.storage
     .from("portfolio")

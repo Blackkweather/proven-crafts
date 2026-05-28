@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/lib/hooks";
+import { markNotificationRead } from "@/lib/db";
 
 export const Route = createFileRoute("/app/notifications")({
   component: NotificationsPage,
@@ -15,7 +16,14 @@ const kindMeta = {
 
 function NotificationsPage() {
   const { user } = useAuth();
-  const { notifications, loading, error, unreadCount, markAllRead } = useNotifications(user?.id);
+  const { notifications, loading, error, unreadCount, markAllRead, setNotifications } = useNotifications(user?.id);
+
+  function markOneRead(id: string) {
+    markNotificationRead(id).catch(() => {});
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)),
+    );
+  }
 
   if (loading) return (
     <div className="space-y-3 max-w-3xl">
@@ -86,12 +94,22 @@ function NotificationsPage() {
                     </Link>
                   )}
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {new Date(n.created_at).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(n.created_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                  {isUnread && (
+                    <button
+                      onClick={() => markOneRead(n.id)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                      Mark read
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}

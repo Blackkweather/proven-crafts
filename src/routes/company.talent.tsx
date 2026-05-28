@@ -34,6 +34,7 @@ const SKILL_FILTERS = [
   "Figma",
 ];
 
+const PAGE_SIZE = 12;
 const AVAIL_OPTS = ["All", "Open to work", "Exploring", "Not available"];
 const availMap: Record<string, string> = {
   "Open to work": "open",
@@ -75,9 +76,11 @@ function TalentDiscovery() {
   const [shortlist, setShortlist] = useState<Set<string>>(new Set());
   const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
   const [messaging, setMessaging] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const [talentList, setTalentList] = useState<ProfileWithSkills[]>([]);
   const [talentLoading, setTalentLoading] = useState(false);
+  const [page, setPage] = useState(1);
 
   const { jobs: allJobs } = useJobs();
   const companyJobs = allJobs.filter((j) => j.company_id === user?.id);
@@ -111,6 +114,7 @@ function TalentDiscovery() {
 
   function toggleSkill(s: string) {
     setActiveSkills((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+    setPage(1);
   }
 
   async function startConversation(talentId: string) {
@@ -128,6 +132,8 @@ function TalentDiscovery() {
     if (!user?.id) return;
     await createMatch(user.id, talentId);
     setInvitedIds((prev) => new Set([...prev, talentId]));
+    setToast("Invite sent!");
+    setTimeout(() => setToast(null), 3000);
     const companyName =
       (user as { company_name?: string; display_name?: string }).company_name ??
       (user as { display_name?: string }).display_name ??
@@ -167,7 +173,7 @@ function TalentDiscovery() {
     }
   }
 
-  const list = talentList
+  const filtered = talentList
     .filter((c) => {
       const nameMatch =
         (c.display_name ?? "").toLowerCase().includes(query.toLowerCase()) ||
@@ -185,6 +191,9 @@ function TalentDiscovery() {
     }))
     .sort((a, b) => b.score - a.score);
 
+  const list = filtered.slice(0, page * PAGE_SIZE);
+  const hasMore = filtered.length > list.length;
+
   if (talentLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -195,12 +204,17 @@ function TalentDiscovery() {
 
   return (
     <div>
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background shadow-elevated animate-fade-in">
+          {toast}
+        </div>
+      )}
       {/* Search bar */}
       <div className="flex flex-wrap items-start gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
             placeholder="Search by name or headline…"
             className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
           />
@@ -246,7 +260,8 @@ function TalentDiscovery() {
 
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          {list.length} profile{list.length !== 1 ? "s" : ""} · ranked by match to your open roles
+          {filtered.length} profile{filtered.length !== 1 ? "s" : ""} · ranked by match to your open roles
+          {talentList.length >= 300 && " · showing first 300"}
         </span>
         {shortlist.size > 0 && (
           <span className="font-medium text-foreground">{shortlist.size} on shortlist</span>
@@ -365,6 +380,17 @@ function TalentDiscovery() {
               </article>
             );
           })}
+        </div>
+      )}
+
+      {hasMore && (
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+          >
+            Load more ({filtered.length - list.length} remaining)
+          </button>
         </div>
       )}
     </div>

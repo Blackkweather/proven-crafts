@@ -18,6 +18,9 @@ function AdminCompanies() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     let cancelled = false;
@@ -54,14 +57,29 @@ function AdminCompanies() {
     </div>
   );
 
+  const filtered = companies.filter((c) => {
+    const name = (c.company_name ?? c.display_name).toLowerCase();
+    return name.includes(q.toLowerCase());
+  });
+  const visible = filtered.slice(0, page * PAGE_SIZE);
+  const hasMore = filtered.length > visible.length;
+
   return (
     <div>
-      <p className="text-sm text-muted-foreground">
-        {`${companies.length} active companies on the network`}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {`${companies.length} active companies on the network`}
+        </p>
+        <input
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setPage(1); }}
+          placeholder="Search…"
+          className="w-64 rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+        />
+      </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {companies.map((c) => {
+          {visible.map((c) => {
             const cJobs = jobs.filter((j) => j.company_id === c.id).length;
             const cCh = challenges.filter((ch) => ch.company_id === c.id).length;
             const companyName = c.company_name ?? c.display_name;
@@ -106,12 +124,23 @@ function AdminCompanies() {
             );
           })}
 
-          {companies.length === 0 && (
+          {visible.length === 0 && (
             <p className="text-sm text-muted-foreground col-span-2 text-center py-8">
               No companies found.
             </p>
           )}
         </div>
+
+      {hasMore && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+          >
+            Load more ({filtered.length - visible.length} remaining)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

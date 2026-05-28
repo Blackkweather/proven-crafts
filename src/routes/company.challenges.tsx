@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useChallenges } from "@/lib/hooks";
-import { createChallenge, updateChallenge, fetchChallengeSubmissions } from "@/lib/db";
-import type { Submission, Challenge } from "@/lib/db";
+import { createChallenge, updateChallenge, fetchChallengeSubmissions, fetchSubscription, updateSubmissionStatus } from "@/lib/db";
+import type { Submission, Challenge, Subscription } from "@/lib/db";
 
 export const Route = createFileRoute("/company/challenges")({
   component: ChallengesPanel,
@@ -63,7 +63,18 @@ function ChallengesPanel() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subLoaded, setSubLoaded] = useState(false);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchSubscription(user.id)
+      .then(setSubscription)
+      .catch(() => setSubscription(null))
+      .finally(() => setSubLoaded(true));
+  }, [user?.id]);
+
+  const hasActiveSub = subscription?.status === "active";
   const companyChallenges = allChallenges.filter((c) => c.company_id === user?.id);
 
   const totalSubmissions = companyChallenges.reduce(
@@ -102,12 +113,22 @@ function ChallengesPanel() {
         <p className="text-sm text-muted-foreground">
           {companyChallenges.length} active · {totalSubmissions} submissions across all briefs
         </p>
-        <button
-          onClick={() => setWizardOpen(true)}
-          className="rounded-md bg-foreground px-4 py-2 text-sm text-background hover:bg-foreground/90"
-        >
-          + New challenge
-        </button>
+        {subLoaded && !hasActiveSub ? (
+          <Link
+            to="/company/billing"
+            search={{ success: false }}
+            className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20"
+          >
+            Upgrade to post challenges →
+          </Link>
+        ) : (
+          <button
+            onClick={() => setWizardOpen(true)}
+            className="rounded-md bg-foreground px-4 py-2 text-sm text-background hover:bg-foreground/90"
+          >
+            + New challenge
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -238,6 +259,7 @@ function SubmissionsPanel({
   const [expanded, setExpanded] = useState(false);
   const [subs, setSubs] = useState<Submission[]>([]);
   const [subsLoading, setSubsLoading] = useState(false);
+  const [reviewing, setReviewing] = useState<Submission | null>(null);
 
   useEffect(() => {
     if (!expanded) return;
@@ -322,7 +344,10 @@ function SubmissionsPanel({
                       {s.match_score ?? 0}
                       <span className="text-[0.5em] text-muted-foreground">%</span>
                     </span>
-                    <button className="rounded-md border border-border bg-background px-2.5 py-1 text-xs hover:bg-accent">
+                    <button
+                      onClick={() => setReviewing(s)}
+                      className="rounded-md border border-border bg-background px-2.5 py-1 text-xs hover:bg-accent"
+                    >
                       Review
                     </button>
                   </li>
@@ -332,6 +357,174 @@ function SubmissionsPanel({
           )}
         </div>
       )}
+
+      {reviewing && (
+        <SubmissionReviewModal
+          submission={reviewing}
+          onClose={() => setReviewing(null)}
+          onStatusChange={(status) => {
+            setSubs((prev) => prev.map((s) => s.id === reviewing.id ? { ...s, status } : s));
+            setReviewing(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Submission review modal
+// ---------------------------------------------------------------------------
+
+function SubmissionReviewModal({
+  submission,
+  onClose,
+  onStatusChange,
+}: {
+  submission: Submission;
+  onClose: () => void;
+  onStatusChange: (status: Submission["status"]) => void;
+}) {
+  const talent = submission.talent;
+  const [acting, setActing] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  async function setStatus(status: Submission["status"]) {
+    setActing(status);
+    setStatusError(null);
+    try {
+      await updateSubmissionStatus(submission.id, status);
+      onStatusChange(status);
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Failed to update submission");
+    } finally {
+      setActing(null);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-foreground/40 p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="flex w-full max-w-2xl flex-col gap-6 rounded-2xl bg-background p-8 shadow-elevated max-h-[90dvh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Submission review
+            </div>
+            <h2 className="mt-1 font-display text-2xl">
+              {talent?.display_name ?? "Unknown talent"}
+            </h2>
+            {talent?.headline && (
+              <p className="text-sm text-muted-foreground">{talent.headline}</p>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="font-display text-3xl text-primary">
+              {submission.match_score ?? 0}
+              <span className="text-[0.5em] text-muted-foreground">%</span>
+            </span>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
+          </div>
+        </div>
+
+        {/* Writeup */}
+        {submission.writeup && (
+          <div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Write-up
+            </div>
+            <p className="whitespace-pre-wrap rounded-xl border border-border bg-paper p-4 text-sm leading-relaxed">
+              {submission.writeup}
+            </p>
+          </div>
+        )}
+
+        {/* Work URL */}
+        {submission.work_url && (
+          <div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Work link
+            </div>
+            <a
+              href={submission.work_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-paper px-4 py-2 text-sm hover:bg-accent"
+            >
+              Open submission ↗
+            </a>
+          </div>
+        )}
+
+        {/* Files */}
+        {submission.file_urls && submission.file_urls.length > 0 && (
+          <div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Files
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {submission.file_urls.map((url, i) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg border border-border bg-paper px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  File {i + 1} ↗
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {statusError && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {statusError}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+          <Link
+            to={`/talent/${submission.talent_id}` as never}
+            className="rounded-md border border-border bg-card px-4 py-2 text-xs hover:bg-accent"
+          >
+            View profile
+          </Link>
+          {submission.status !== "shortlisted" && (
+            <button
+              disabled={!!acting}
+              onClick={() => setStatus("shortlisted")}
+              className="rounded-md bg-warm px-4 py-2 text-xs font-medium text-warm-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {acting === "shortlisted" ? "…" : "Shortlist"}
+            </button>
+          )}
+          {submission.status !== "reviewed" && (
+            <button
+              disabled={!!acting}
+              onClick={() => setStatus("reviewed")}
+              className="rounded-md bg-foreground px-4 py-2 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
+            >
+              {acting === "reviewed" ? "…" : "Mark reviewed"}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="ml-auto rounded-md border border-border bg-card px-4 py-2 text-xs hover:bg-accent"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -35,7 +35,7 @@ import {
 // API: the Gemini API key is stored as a Supabase edge function secret (never hard-coded)
 const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" +
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
   GEMINI_KEY;
 
 // Warn loudly at startup if the key is missing — avoids silent failures on requests
@@ -43,7 +43,7 @@ if (!GEMINI_KEY) console.error("[ai-match-score] GEMINI_API_KEY is not set");
 
 /**
  * Send a prompt to Google Gemini and return the raw text response.
- * Uses the gemini-2.0-flash model for fast, low-cost responses.
+ * Uses the gemini-2.5-flash model for fast, low-cost responses.
  * Temperature 0.2 keeps scores consistent — higher values add more randomness.
  *
  * API: calls the Google Generative Language API with a single user message.

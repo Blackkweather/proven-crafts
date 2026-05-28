@@ -28,3 +28,14 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export function daysLeft(deadline: string): number {
+  return Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000));
+}
+
+export function calcMatch(required: string[], userSkills: { name: string }[]): number {
+  if (!required.length) return 0;
+  const names = userSkills.map((s) => s.name.toLowerCase());
+  const matched = required.filter((r) => names.includes(r.toLowerCase())).length;
+  return Math.round((matched / required.length) * 100);
+}

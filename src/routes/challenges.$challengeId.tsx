@@ -20,13 +20,16 @@
 // =============================================================================
 
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { fetchChallenge, upsertSubmission, type Challenge } from "@/lib/db";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/hooks";
 import { MatchScore } from "@/components/match-score";
 import { getAIChallengeEval, type ChallengeEvalResult } from "@/lib/ai";
+import { uploadSubmissionFile } from "@/lib/storage";
+import { calcMatch, daysLeft } from "@/lib/utils";
+import { Paperclip, X } from "lucide-react";
 
 // NAVIGATION: Dynamic route — "/challenges/:challengeId" with loader and SEO head.
 export const Route = createFileRoute("/challenges/$challengeId")({
@@ -77,19 +80,8 @@ export const Route = createFileRoute("/challenges/$challengeId")({
   ),
 });
 
-// Calculates how many of the required skills the current user already has (as a %).
-function matchScore(required: string[], mySkills: string[]): number {
-  if (!required.length) return 0;
-  const names = mySkills.map((s) => s.toLowerCase());
-  const matched = required.filter((r) => names.includes(r.toLowerCase())).length;
-  return Math.round((matched / required.length) * 100);
-}
 
 // Returns how many days remain before the deadline. Returns 0 if past due.
-function daysLeft(deadlineAt: string): number {
-  const ms = new Date(deadlineAt).getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / 86400000));
-}
 
 function ChallengeDetail() {
   // DATABASE: Pre-loaded challenge data from the route loader.
@@ -106,11 +98,7 @@ function ChallengeDetail() {
 
   const company = challenge.company;
 
-  // Calculate the viewer's skill match percentage against this challenge's requirements.
-  const score = matchScore(
-    challenge.required_skills,
-    skills.map((s) => s.name),
-  );
+  const score = calcMatch(challenge.required_skills, skills);
 
   // Days until the challenge deadline (0 means closed).
   const deadline = daysLeft(challenge.deadline_at);
@@ -260,34 +248,45 @@ function SubmitDialog({
   // "form" = user filling in details, "evaluating" = AI running, "done" = finished.
   const [step, setStep] = useState<"form" | "evaluating" | "done">("form");
 
-  // STATE: The URL the talent is linking to (GitHub repo, deployed demo, etc.)
   const [url, setUrl] = useState("");
-
-  // STATE: The text write-up explaining the talent's approach.
   const [writeup, setWriteup] = useState("");
-
-  // STATE: True while the upsertSubmission DB call is in flight.
+  const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
-  // STATE: Error message shown in the form if the submission fails.
   const [error, setError] = useState<string | null>(null);
-
-  // STATE: The AI evaluation result returned by Gemini (may be null if AI eval failed).
   const [eval_, setEval] = useState<ChallengeEvalResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // DATABASE + API: Saves the submission to Supabase, then requests AI evaluation.
+  function addFiles(incoming: FileList | null) {
+    if (!incoming) return;
+    const next = [...files];
+    for (const f of Array.from(incoming)) {
+      if (next.length >= 5) break;
+      if (!next.find((x) => x.name === f.name && x.size === f.size)) next.push(f);
+    }
+    setFiles(next);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
+      // Upload any attached files first
+      let fileUrls: string[] = [];
+      if (files.length > 0) {
+        fileUrls = await Promise.all(
+          files.map((f) => uploadSubmissionFile(talentId, challenge.id, f)),
+        );
+      }
+
       // DATABASE: Persist the submission record in Supabase.
       await upsertSubmission({
         challenge_id: challenge.id,
         talent_id: talentId,
         status: "submitted",
-        work_url: url,
+        work_url: url || undefined,
         writeup,
+        file_urls: fileUrls,
       });
 
       // Show the loading spinner while AI evaluates.
@@ -416,11 +415,13 @@ function SubmitDialog({
               <h2 className="mt-1 font-display text-2xl">{challenge.title}</h2>
             </div>
 
-            {/* Work URL field — required, must be a valid URL */}
+            {/* Work URL field — optional when files are attached */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Link to your work *</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Link to your work {files.length === 0 ? "*" : "(optional if attaching files)"}
+              </label>
               <input
-                required
+                required={files.length === 0}
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -428,6 +429,47 @@ function SubmitDialog({
                 className={inputCls}
               />
               <p className="mt-1 text-[11px] text-muted-foreground">Repo, Figma file, deployed demo, or recorded walkthrough.</p>
+            </div>
+
+            {/* File attachments — up to 5 files, images/PDFs/zip/video */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Attachments <span className="font-normal text-muted-foreground/60">(optional, max 5 files · 25 MB each)</span></label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*,application/pdf,application/zip,text/plain"
+                className="hidden"
+                onChange={(e) => addFiles(e.target.files)}
+              />
+              {files.length > 0 && (
+                <ul className="mb-2 space-y-1.5">
+                  {files.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                      <Paperclip size={13} className="shrink-0 text-muted-foreground" />
+                      <span className="flex-1 truncate">{f.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                      <button
+                        type="button"
+                        onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="shrink-0 rounded p-0.5 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X size={13} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {files.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border py-2.5 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+                >
+                  <Paperclip size={14} />
+                  Attach files
+                </button>
+              )}
             </div>
 
             {/* Approach write-up — required, word count shown live */}

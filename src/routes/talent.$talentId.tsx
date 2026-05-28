@@ -179,9 +179,9 @@ function TalentProfilePage() {
     setActionError(null);
     try {
       // DATABASE: Create the conversation row if it doesn't exist yet.
-      await getOrCreateConversation(user.id, talent.id);
+      const conv = await getOrCreateConversation(user.id, talent.id);
       // NAVIGATION: Send the user to the inbox (company or talent inbox).
-      router.navigate({ to: isCompany ? "/company/inbox" : "/app/inbox" });
+      router.navigate({ to: isCompany ? "/company/inbox" : "/app/inbox", search: { conv: conv.id } });
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Could not start conversation.");
       setMessaging(false);

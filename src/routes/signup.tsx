@@ -45,6 +45,10 @@ function Signup() {
   // STATE: Info/success message (e.g. "Account created! Setting up your profile…")
   const [info, setInfo] = useState<string | null>(null);
 
+  // STATE: True when Supabase requires the user to confirm their email before
+  // they can sign in. Renders a dedicated "check your inbox" screen.
+  const [needsVerify, setNeedsVerify] = useState(false);
+
   // STATE: Disable the submit button while the network request is in flight.
   const [loading, setLoading] = useState(false);
 
@@ -62,7 +66,14 @@ function Signup() {
       setError(res.error ?? "Sign-up failed");
       return;
     }
-    // Success: brief confirmation message before the auth context navigates away.
+    if (res.needsVerify) {
+      // Supabase "Confirm email" is enabled — the user must click the link in
+      // their inbox before they can sign in. Show a dedicated screen.
+      setNeedsVerify(true);
+      return;
+    }
+    // Auto-confirm is enabled: session returned immediately, auth context
+    // will fire SIGNED_IN and navigate the user to their dashboard.
     setInfo("Account created! Setting up your profile…");
   }
 
@@ -71,6 +82,37 @@ function Signup() {
     setError(null);
     const res = await signInWithGoogle();
     if (!res.ok) setError(res.error ?? "Google sign-in failed");
+  }
+
+  // AUTH: Email confirmation required — show a dedicated screen instead of the form.
+  if (needsVerify) {
+    return (
+      <AuthLayout
+        eyebrow="Check your inbox"
+        title="Confirm your email."
+        sub={`We sent a link to ${email}. Click it to activate your account.`}
+        footer={
+          <>
+            Wrong address?{" "}
+            <button
+              type="button"
+              onClick={() => setNeedsVerify(false)}
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Go back
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Once you confirm, return here and{" "}
+          <Link to="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+            sign in
+          </Link>
+          .
+        </p>
+      </AuthLayout>
+    );
   }
 
   return (

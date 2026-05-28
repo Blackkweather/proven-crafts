@@ -239,7 +239,7 @@ app.get("/talent/:id/match", async (request, reply) => {
 });
 
 // Start the server
-app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+app.listen({ port: PORT, host: "127.0.0.1" }, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1);

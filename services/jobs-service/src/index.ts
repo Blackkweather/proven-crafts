@@ -58,6 +58,11 @@ function accountType(request: { headers: Record<string, unknown> }) {
   return request.headers["x-account-type"] as string | undefined;
 }
 
+async function getCompanyForOwner(uid: string) {
+  const { data } = await supabase.from("companies").select("id").eq("owner_id", uid).single();
+  return data;
+}
+
 // Health check
 app.get("/health", async () => ({ status: "ok", service: "jobs-service" }));
 
@@ -173,14 +178,20 @@ app.post("/jobs", async (request, reply) => {
 
 // ── Update job ────────────────────────────────────────────────────────────────
 
+const UpdateJobBody = z.object({
+  title: z.string().min(1).optional(),
+  summary: z.string().min(1).optional(),
+  location: z.string().optional(),
+  arrangement: z.enum(["Remote", "Hybrid", "Onsite"]).optional(),
+  comp: z.string().optional(),
+  requiredSkills: z.array(z.string()).optional(),
+  status: z.enum(["active", "closed", "draft"]).optional(),
+});
+
 /**
  * Update a job posting (e.g., change the title, salary, or status).
- * Only company accounts are allowed to update jobs.
- * NOTE: this does not verify the company owns the specific job — consider adding
- * that check in production to prevent one company editing another's job.
- *
- * AUTH: requires x-account-type = "company"
- * DATABASE: updates `jobs` where id = jobId.
+ * AUTH: requires x-account-type = "company" AND must own the job being updated.
+ * DATABASE: reads `companies` to resolve company_id, then updates `jobs`.
  */
 app.patch("/jobs/:id", async (request, reply) => {
   const uid = userId(request as any);
@@ -188,13 +199,21 @@ app.patch("/jobs/:id", async (request, reply) => {
     return reply.code(403).send({ error: "Forbidden" });
 
   const { id } = request.params as { id: string };
+
+  const body = UpdateJobBody.safeParse(request.body);
+  if (!body.success) return reply.code(400).send({ error: body.error.flatten() });
+
+  const company = await getCompanyForOwner(uid);
+  if (!company) return reply.code(403).send({ error: "Company profile not found" });
+
   const { data, error } = await supabase
     .from("jobs")
-    .update(request.body as object)
+    .update(body.data)
     .eq("id", id)
+    .eq("company_id", company.id)
     .select()
     .single();
-  if (error) return reply.code(500).send({ error: error.message });
+  if (error) return reply.code(404).send({ error: "Job not found or not owned by you" });
   return reply.send(data);
 });
 
@@ -212,8 +231,16 @@ app.delete("/jobs/:id", async (request, reply) => {
   if (!uid || accountType(request as any) !== "company")
     return reply.code(403).send({ error: "Forbidden" });
 
+  const company = await getCompanyForOwner(uid);
+  if (!company) return reply.code(403).send({ error: "Company profile not found" });
+
   const { id } = request.params as { id: string };
-  await supabase.from("jobs").update({ status: "closed" }).eq("id", id);
+  const { error } = await supabase
+    .from("jobs")
+    .update({ status: "closed" })
+    .eq("id", id)
+    .eq("company_id", company.id);
+  if (error) return reply.code(404).send({ error: "Job not found or not owned by you" });
   return reply.send({ ok: true });
 });
 
@@ -290,7 +317,7 @@ app.get("/jobs/:id/applications", async (request, reply) => {
 });
 
 // Start the server
-app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+app.listen({ port: PORT, host: "127.0.0.1" }, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1);

@@ -57,6 +57,11 @@ function accountType(req: { headers: Record<string, unknown> }) {
   return req.headers["x-account-type"] as string | undefined;
 }
 
+async function getCompanyForOwner(uid: string) {
+  const { data } = await supabase.from("companies").select("id").eq("owner_id", uid).single();
+  return data;
+}
+
 // Health check endpoint
 app.get("/health", async () => ({ status: "ok", service: "challenge-service" }));
 
@@ -236,6 +241,18 @@ app.get("/challenges/:id/submissions", async (request, reply) => {
     return reply.code(403).send({ error: "Forbidden" });
 
   const { id } = request.params as { id: string };
+
+  const company = await getCompanyForOwner(uid);
+  if (!company) return reply.code(403).send({ error: "Company profile not found" });
+
+  const { data: challenge } = await supabase
+    .from("challenges")
+    .select("id")
+    .eq("id", id)
+    .eq("company_id", company.id)
+    .single();
+  if (!challenge) return reply.code(403).send({ error: "Challenge not found or not owned by you" });
+
   const { data, error } = await supabase
     .from("submissions")
     .select("*, talent:profiles(id,display_name,headline,avatar_url)")
@@ -260,8 +277,24 @@ app.patch("/challenges/:id/submissions/:submissionId", async (request, reply) =>
   if (!uid || accountType(request as any) !== "company")
     return reply.code(403).send({ error: "Forbidden" });
 
-  const { submissionId } = request.params as { id: string; submissionId: string };
-  const { status } = request.body as { status: "reviewed" | "shortlisted" | "rejected" };
+  const { id, submissionId } = request.params as { id: string; submissionId: string };
+
+  const statusParsed = z.object({
+    status: z.enum(["reviewed", "shortlisted", "rejected"]),
+  }).safeParse(request.body);
+  if (!statusParsed.success) return reply.code(400).send({ error: statusParsed.error.flatten() });
+  const { status } = statusParsed.data;
+
+  const company = await getCompanyForOwner(uid);
+  if (!company) return reply.code(403).send({ error: "Company profile not found" });
+
+  const { data: challenge } = await supabase
+    .from("challenges")
+    .select("id")
+    .eq("id", id)
+    .eq("company_id", company.id)
+    .single();
+  if (!challenge) return reply.code(403).send({ error: "Challenge not found or not owned by you" });
 
   const { data, error } = await supabase
     .from("submissions")
@@ -274,7 +307,7 @@ app.patch("/challenges/:id/submissions/:submissionId", async (request, reply) =>
 });
 
 // Start the server
-app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+app.listen({ port: PORT, host: "127.0.0.1" }, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1);

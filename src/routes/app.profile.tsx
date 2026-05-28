@@ -696,9 +696,12 @@ function AddSkillModal({
     (s) => s.toLowerCase().includes(name.toLowerCase()) && !existing.includes(s),
   );
 
+  const MAX_SKILL_LEN = 50;
+  const tooLong = name.trim().length > MAX_SKILL_LEN;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || tooLong) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -731,7 +734,12 @@ function AddSkillModal({
               placeholder="e.g. TypeScript, Figma…"
               className={inputCls}
             />
-            {name && filtered.length > 0 && (
+            {tooLong && (
+              <p className="mt-1 text-xs text-destructive">
+                Skill name must be {MAX_SKILL_LEN} characters or less.
+              </p>
+            )}
+            {name && !tooLong && filtered.length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {filtered.slice(0, 6).map((s) => (
                   <button
@@ -777,7 +785,7 @@ function AddSkillModal({
           <div className="flex gap-2 pt-1">
             <button
               type="submit"
-              disabled={!name.trim() || submitting}
+              disabled={!name.trim() || tooLong || submitting}
               className="flex-1 rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-40"
             >
               {submitting ? "Adding…" : "Add skill"}

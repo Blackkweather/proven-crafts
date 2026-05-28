@@ -5,6 +5,7 @@ import {
   fetchTalentMatches,
   updateMatchStatus,
   getOrCreateConversation,
+  createNotification,
   type Match,
 } from "@/lib/db";
 import { useRouter } from "@tanstack/react-router";
@@ -20,10 +21,13 @@ function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     fetchTalentMatches(user.id)
       .then((rows) => {
         if (!cancelled) setMatches(rows);
@@ -40,7 +44,7 @@ function MatchesPage() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, retryKey]);
 
   async function respond(match: Match, status: "confirmed" | "declined") {
     setActing(match.id);
@@ -49,6 +53,13 @@ function MatchesPage() {
       setMatches((prev) => prev.map((m) => (m.id === match.id ? { ...m, status } : m)));
       if (status === "confirmed" && user?.id) {
         const conv = await getOrCreateConversation(user.id, match.company_id);
+        createNotification({
+          user_id: match.company_id,
+          kind: "match",
+          title: "A talent accepted your invite",
+          body: "They're ready to connect. Open your inbox to start the conversation.",
+          link: `/company/inbox?conv=${conv.id}`,
+        }).catch(() => {});
         router.navigate({ to: "/app/inbox", search: { conv: conv.id } });
       }
     } finally {
@@ -72,8 +83,14 @@ function MatchesPage() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-        Failed to load matches. Please refresh.
+      <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive flex items-center justify-between gap-4">
+        <span>Failed to load matches: {error}</span>
+        <button
+          onClick={() => setRetryKey((k) => k + 1)}
+          className="shrink-0 rounded-md border border-destructive/40 px-3 py-1.5 text-xs hover:bg-destructive/20"
+        >
+          Retry
+        </button>
       </div>
     );
   }

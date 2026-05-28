@@ -16,6 +16,8 @@ function Moderation() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +87,7 @@ function Moderation() {
         </div>
       ) : (
         <div className="mt-6 space-y-3">
-          {items.map((s) => {
+          {items.slice(0, page * PAGE_SIZE).map((s) => {
             const talent = s.talent as { display_name?: string } | undefined;
             const challenge = s.challenge as { title?: string } | undefined;
             const talentName = talent?.display_name ?? s.talent_id.slice(0, 8);
@@ -133,6 +135,17 @@ function Moderation() {
               </article>
             );
           })}
+        </div>
+      )}
+
+      {items.length > page * PAGE_SIZE && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+          >
+            Load more ({items.length - page * PAGE_SIZE} remaining)
+          </button>
         </div>
       )}
     </div>

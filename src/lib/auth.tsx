@@ -28,7 +28,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { setUserContext } from "@/lib/monitoring";
 
 // =============================================================================
@@ -65,7 +64,7 @@ interface AuthCtx {
   freshSignIn: boolean;       // True immediately after a new login event
   consumeFreshSignIn: () => void;  // Call to reset freshSignIn to false
   signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  signUp: (name: string, email: string, password: string, accountType: AccountType) => Promise<{ ok: boolean; error?: string }>;
+  signUp: (name: string, email: string, password: string, accountType: AccountType) => Promise<{ ok: boolean; error?: string; needsVerify?: boolean }>;
   signInWithGoogle: () => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>; // Re-fetches profile + roles from DB
@@ -86,14 +85,17 @@ const Ctx = createContext<AuthCtx | null>(null);
 // KEYWORDS: DATABASE, AUTH
 // =============================================================================
 async function loadProfileAndRoles(userId: string) {
-  const [{ data: profile }, { data: roleRows }] = await Promise.all([
+  const [profileRes, rolesRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", userId),
   ]);
 
+  if (profileRes.error) console.error("[auth] profiles query failed:", profileRes.error.message);
+  if (rolesRes.error) console.error("[auth] user_roles query failed:", rolesRes.error.message);
+
   return {
-    profile: (profile ?? null) as ProfileRow | null,
-    roles: (roleRows ?? []).map((r) => r.role as Role),
+    profile: (profileRes.data ?? null) as ProfileRow | null,
+    roles: (rolesRes.data ?? []).map((r) => r.role as Role),
   };
 }
 
@@ -227,9 +229,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // AUTH — SIGNUP: Creates a new Supabase auth user.
     // Passes display_name and account_type as user_metadata so the DB trigger
     // can create the profiles row automatically.
+    //
+    // If the Supabase project has "Confirm email" enabled, signUp returns
+    // session: null and the user must click the confirmation link before they
+    // can sign in. We surface this as needsVerify: true so the UI can show
+    // "check your inbox" instead of trying to navigate to the dashboard.
+    // If "Confirm email" is disabled (auto-confirm), a session is returned
+    // immediately and onAuthStateChange fires SIGNED_IN as normal.
     signUp: async (name, email, password, accountType) => {
       const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -238,6 +247,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
       if (error) return { ok: false, error: error.message };
+
+      // session is null when email confirmation is required.
+      // Return needsVerify so the signup page can show the right message.
+      if (!data.session) return { ok: true, needsVerify: true };
+
       return { ok: true };
     },
 

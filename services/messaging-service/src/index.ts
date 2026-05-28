@@ -79,17 +79,19 @@ app.get("/messages/ws", { websocket: true }, (socket, request) => {
   const uid = userId(request as any);
   // AUTH: close the connection if no user identity is available
   if (!uid) {
-    socket.close(4001, "Unauthorized");
+    socket.socket.close(4001, "Unauthorized");
     return;
   }
 
+  const ws = socket.socket;
+
   // STATE: add this socket to the user's connection set
   if (!connections.has(uid)) connections.set(uid, new Set());
-  connections.get(uid)!.add(socket);
+  connections.get(uid)!.add(ws);
 
   // STATE: clean up when the socket closes (tab closed, network disconnect, etc.)
   socket.on("close", () => {
-    connections.get(uid)?.delete(socket);
+    connections.get(uid)?.delete(ws);
     // Remove the user entry entirely if they have no remaining connections
     if (connections.get(uid)?.size === 0) connections.delete(uid);
   });
@@ -172,10 +174,10 @@ app.post("/messages/conversations", async (request, reply) => {
   const uid = userId(request as any);
   if (!uid) return reply.code(401).send({ error: "Unauthorized" });
 
-  const { recipientId, initialMessage } = request.body as {
-    recipientId: string;
-    initialMessage: string;
-  };
+  const parsed = StartConversationBody.safeParse(request.body);
+  if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+
+  const { recipientId, initialMessage } = parsed.data;
 
   // DATABASE: check if a conversation already exists (in either participant order)
   const { data: existing } = await supabase
@@ -229,6 +231,11 @@ app.post("/messages/conversations", async (request, reply) => {
 });
 
 // ── Send message ──────────────────────────────────────────────────────────────
+
+const StartConversationBody = z.object({
+  recipientId: z.string().uuid(),
+  initialMessage: z.string().min(1),
+});
 
 /**
  * VALIDATION: Zod schema for send message body — text must be non-empty.
@@ -294,7 +301,7 @@ app.post("/messages/conversations/:id/send", async (request, reply) => {
 });
 
 // Start the server
-app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+app.listen({ port: PORT, host: "127.0.0.1" }, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1);

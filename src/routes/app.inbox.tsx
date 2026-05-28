@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useConversations, useMessages } from "@/lib/hooks";
 import { sendMessage } from "@/lib/db";
@@ -7,6 +7,9 @@ import type { Conversation } from "@/lib/db";
 
 export const Route = createFileRoute("/app/inbox")({
   component: InboxPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    conv: s.conv as string | undefined,
+  }),
 });
 
 function getOtherName(conv: Conversation, userId: string): string {
@@ -24,12 +27,18 @@ function formatTime(iso: string | null): string {
 
 export function InboxPage() {
   const { user } = useAuth();
+  const { conv: convFromUrl } = useSearch({ strict: false }) as { conv?: string };
   const { conversations, loading: convsLoading } = useConversations(user?.id);
   const [activeId, setActiveId] = useState<string>("");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
-  // Set initial active when conversations load (only once)
+  // Auto-select conversation from URL ?conv= param (e.g. navigated from matches page)
+  useEffect(() => {
+    if (convFromUrl) setActiveId(convFromUrl);
+  }, [convFromUrl]);
+
   const activeConvId = activeId || conversations[0]?.id || "";
   const active = conversations.find((c) => c.id === activeConvId) ?? null;
 
@@ -39,11 +48,12 @@ export function InboxPage() {
     e.preventDefault();
     if (!draft.trim() || !activeConvId || !user) return;
     setSending(true);
+    setSendError(null);
     try {
       await sendMessage(activeConvId, user.id, draft.trim());
       setDraft("");
     } catch (err) {
-      console.error("Failed to send message:", err instanceof Error ? err.message : String(err));
+      setSendError(err instanceof Error ? err.message : "Failed to send message");
     } finally {
       setSending(false);
     }
@@ -131,6 +141,11 @@ export function InboxPage() {
                 })}
               </div>
 
+              {sendError && (
+                <div className="mx-4 mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {sendError}
+                </div>
+              )}
               <form
                 onSubmit={send}
                 className="flex items-center gap-2 border-t border-border bg-paper p-4"

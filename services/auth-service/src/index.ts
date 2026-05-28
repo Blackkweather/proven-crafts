@@ -160,14 +160,33 @@ app.post("/auth/refresh", async (request, reply) => {
 
 // ── Forgot password ───────────────────────────────────────────────────────────
 
+const ALLOWED_REDIRECT_ORIGINS = [
+  process.env.FRONTEND_URL ?? "http://localhost:8080",
+];
+
+const ForgotPasswordBody = z.object({
+  email: z.string().email(),
+  redirectTo: z.string().url(),
+});
+
 /**
  * Send a password reset email to the user.
- * The `redirectTo` URL is where Supabase will redirect after the reset link is clicked.
+ * redirectTo is validated against the allowlist to prevent open-redirect phishing.
  *
  * AUTH: calls Supabase Auth resetPasswordForEmail
  */
 app.post("/auth/forgot-password", async (request, reply) => {
-  const { email, redirectTo } = request.body as { email: string; redirectTo: string };
+  const body = ForgotPasswordBody.safeParse(request.body);
+  if (!body.success) return reply.code(400).send({ error: body.error.flatten() });
+
+  const { email, redirectTo } = body.data;
+
+  // Validate redirectTo is on an allowed origin — prevents phishing via crafted reset links
+  const origin = new URL(redirectTo).origin;
+  if (!ALLOWED_REDIRECT_ORIGINS.includes(origin)) {
+    return reply.code(400).send({ error: "Invalid redirectTo URL" });
+  }
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
   if (error) return reply.code(400).send({ error: error.message });
   return reply.send({ ok: true });
@@ -226,7 +245,7 @@ app.post("/auth/onboarding", async (request, reply) => {
 });
 
 // Start the server
-app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+app.listen({ port: PORT, host: "127.0.0.1" }, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1);

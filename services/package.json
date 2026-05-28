@@ -2,8 +2,8 @@
   "name": "@skillnetwork/services",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n gateway,auth,jobs,talent,challenge,messaging -c cyan,green,blue,magenta,yellow,red \"npm run dev --prefix api-gateway\" \"npm run dev --prefix auth-service\" \"npm run dev --prefix jobs-service\" \"npm run dev --prefix talent-service\" \"npm run dev --prefix challenge-service\" \"npm run dev --prefix messaging-service\"",
-    "install:all": "npm install --prefix api-gateway && npm install --prefix auth-service && npm install --prefix jobs-service && npm install --prefix talent-service && npm install --prefix challenge-service && npm install --prefix messaging-service"
+    "dev": "concurrently -n gateway,auth,jobs,talent,challenge,messaging,billing,analytics,ai,admin,storage,referral,contact -c cyan,green,blue,magenta,yellow,red,white,gray,bgBlue,bgGreen,bgMagenta,bgYellow,bgCyan \"npm run dev --prefix api-gateway\" \"npm run dev --prefix auth-service\" \"npm run dev --prefix jobs-service\" \"npm run dev --prefix talent-service\" \"npm run dev --prefix challenge-service\" \"npm run dev --prefix messaging-service\" \"npm run dev --prefix billing-service\" \"npm run dev --prefix analytics-service\" \"npm run dev --prefix ai-service\" \"npm run dev --prefix admin-service\" \"npm run dev --prefix storage-service\" \"npm run dev --prefix referral-service\" \"npm run dev --prefix contact-service\"",
+    "install:all": "npm install --prefix api-gateway && npm install --prefix auth-service && npm install --prefix jobs-service && npm install --prefix talent-service && npm install --prefix challenge-service && npm install --prefix messaging-service && npm install --prefix billing-service && npm install --prefix analytics-service && npm install --prefix ai-service && npm install --prefix admin-service && npm install --prefix storage-service && npm install --prefix referral-service && npm install --prefix contact-service"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -33,7 +33,7 @@
 // =============================================================================
 
 import { useEffect, type ReactNode } from "react";
-import { useRouter } from "@tanstack/react-router";
+import { useRouter, useLocation } from "@tanstack/react-router";
 import { useAuth, dashboardPathFor, type Role } from "@/lib/auth";
 
 // =============================================================================
@@ -47,38 +47,40 @@ export function RequireRole({ allow, children }: { allow: Role[]; children: Reac
   // AUTH: Pull user identity, their roles, and loading state from AuthContext
   const { user, roles, primaryRole, loading } = useAuth();
   const router = useRouter();
+  const { pathname } = useLocation();
 
   // AUTH: Check if any of the user's roles match the allowed list.
-  // A user can have multiple roles (e.g. both talent and admin).
   const allowed = roles.some((r) => allow.includes(r));
+
+  // When a logged-in user has no roles yet (brief gap while DB loads), don't
+  // redirect — treat it as still loading to prevent an infinite loop where
+  // dashboardPathFor(null) = "/app" points back at the same page.
+  const rolesStillLoading = user !== null && roles.length === 0;
 
   // MIDDLEWARE: Handle redirects in a useEffect so they happen after render,
   // avoiding "navigate during render" React warnings.
   useEffect(() => {
-    // Wait until auth has finished loading — don't redirect prematurely
-    if (loading) return;
+    if (loading || rolesStillLoading) return;
 
     if (!user) {
-      // AUTH: No session → send to login page
       router.navigate({ to: "/login" });
       return;
     }
 
     if (!allowed) {
-      // NAVIGATION: User is logged in but has the wrong role.
-      // Send them to the correct dashboard for their actual role.
-      // e.g. a talent user landing on /admin → goes to /app
-      router.navigate({ to: dashboardPathFor(primaryRole) });
+      const dest = dashboardPathFor(primaryRole);
+      // Guard: never redirect to the current page — that creates an infinite loop.
+      if (dest !== pathname) {
+        router.navigate({ to: dest });
+      }
     }
-  }, [loading, user, allowed, primaryRole, router]);
+  }, [loading, rolesStillLoading, user, allowed, primaryRole, router, pathname]);
 
   // STATE: Show a loading screen while the auth session is being restored.
-  // This prevents the protected content from flashing before the redirect fires.
-  if (loading) {
+  if (loading || rolesStillLoading) {
     return (
       <div className="grid min-h-dvh place-items-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          {/* Animated spinner */}
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
           <div className="text-sm text-muted-foreground">Loading…</div>
         </div>
@@ -87,8 +89,6 @@ export function RequireRole({ allow, children }: { allow: Role[]; children: Reac
   }
 
   // AUTH: Show a brief "Redirecting" message while the router navigates.
-  // This covers the window between the useEffect redirect and the actual
-  // navigation completing, preventing a flash of unauthorized content.
   if (!user || !allowed) {
     return (
       <div className="grid min-h-dvh place-items-center bg-background">

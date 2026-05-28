@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useJobs } from "@/lib/hooks";
-import { createJob, updateJob, type JobInput } from "@/lib/db";
+import { createJob, updateJob, fetchSubscription, type JobInput, type Subscription } from "@/lib/db";
 
 export const Route = createFileRoute("/company/jobs")({
   component: JobsPanel,
@@ -15,6 +15,18 @@ function JobsPanel() {
   const { jobs, loading, refetch } = useJobs(undefined);
   const companyJobs = jobs.filter((j) => j.company_id === user?.id);
   const [creating, setCreating] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subLoaded, setSubLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchSubscription(user.id)
+      .then(setSubscription)
+      .catch(() => setSubscription(null))
+      .finally(() => setSubLoaded(true));
+  }, [user?.id]);
+
+  const hasActiveSub = subscription?.status === "active";
 
   if (loading) return (
     <div className="space-y-3">
@@ -30,12 +42,22 @@ function JobsPanel() {
         <p className="text-sm text-muted-foreground">
           {companyJobs.length} open role{companyJobs.length !== 1 ? "s" : ""}
         </p>
-        <button
-          onClick={() => setCreating(true)}
-          className="rounded-md bg-foreground px-4 py-2 text-sm text-background hover:bg-foreground/90"
-        >
-          + New role
-        </button>
+        {subLoaded && !hasActiveSub ? (
+          <Link
+            to="/company/billing"
+            search={{ success: false }}
+            className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20"
+          >
+            Upgrade to post roles →
+          </Link>
+        ) : (
+          <button
+            onClick={() => setCreating(true)}
+            className="rounded-md bg-foreground px-4 py-2 text-sm text-background hover:bg-foreground/90"
+          >
+            + New role
+          </button>
+        )}
       </div>
 
       {companyJobs.length === 0 && (

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { fetchAllUsers, suspendUser, reinstateUser, type Profile } from "@/lib/db";
+import { fetchAllUsers, fetchActiveUserIds, suspendUser, reinstateUser, logAdminAction, type Profile } from "@/lib/db";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin/users")({
   component: AdminUsers,
@@ -9,23 +10,26 @@ export const Route = createFileRoute("/admin/users")({
 type UserRow = Profile & { suspended: boolean };
 
 function AdminUsers() {
+  const { user } = useAuth();
   const [people, setPeople] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [suspending, setSuspending] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 25;
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    fetchAllUsers()
-      .then((users) => {
+    Promise.all([fetchAllUsers(), fetchActiveUserIds()])
+      .then(([users, activeIds]) => {
         if (!cancelled) {
           setPeople(
             users
               .filter((u) => u.account_type === "talent")
-              .map((u) => ({ ...u, suspended: false })),
+              .map((u) => ({ ...u, suspended: !activeIds.has(u.id) })),
           );
         }
       })
@@ -49,6 +53,8 @@ function AdminUsers() {
       p.display_name.toLowerCase().includes(q.toLowerCase()) ||
       (p.headline ?? "").toLowerCase().includes(q.toLowerCase()),
   );
+  const visible = filtered.slice(0, page * PAGE_SIZE);
+  const hasMore = filtered.length > visible.length;
 
   async function handleSuspendToggle(p: UserRow) {
     setSuspending(p.id);
@@ -56,9 +62,11 @@ function AdminUsers() {
       if (!p.suspended) {
         await suspendUser(p.id);
         setPeople((xs) => xs.map((x) => (x.id === p.id ? { ...x, suspended: true } : x)));
+        if (user?.id) logAdminAction(user.id, "suspend_user", "user", p.id, { display_name: p.display_name }).catch(() => {});
       } else {
         await reinstateUser(p.id);
         setPeople((xs) => xs.map((x) => (x.id === p.id ? { ...x, suspended: false } : x)));
+        if (user?.id) logAdminAction(user.id, "reinstate_user", "user", p.id, { display_name: p.display_name }).catch(() => {});
       }
     } catch (err) {
       console.error("Suspend/reinstate failed:", err instanceof Error ? err.message : String(err));
@@ -97,7 +105,7 @@ function AdminUsers() {
         </p>
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => { setQ(e.target.value); setPage(1); }}
           placeholder="Search…"
           className="w-64 rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
         />
@@ -112,11 +120,11 @@ function AdminUsers() {
           <div>Action</div>
         </div>
 
-        {filtered.length === 0 && (
+        {visible.length === 0 && (
           <div className="px-5 py-8 text-center text-sm text-muted-foreground">No users found.</div>
         )}
 
-        {filtered.map((p, i) => (
+        {visible.map((p, i) => (
             <div
               key={p.id}
               className={
@@ -156,6 +164,17 @@ function AdminUsers() {
             </div>
           ))}
       </div>
+
+      {hasMore && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+          >
+            Load more ({filtered.length - visible.length} remaining)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,6 +23,13 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Claude Code session data
+.claude/
+
+# Playwright test output
+test-results/
+playwright-report/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

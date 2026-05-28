@@ -8,6 +8,7 @@ import {
   upsertVote,
   fetchApplicationNotes,
   addApplicationNote,
+  createNotification,
   type ApplicationStatus,
   type CandidateVote,
   type CandidateNote,
@@ -27,14 +28,42 @@ function Candidates() {
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const { applications, loading, refetch } = useCompanyPipeline(
     user?.id,
     tab === "all" ? undefined : tab,
   );
 
-  async function moveStatus(appId: string, status: ApplicationStatus) {
+  async function moveStatus(appId: string, status: ApplicationStatus, talentId: string) {
     await updateApplicationStatus(appId, status);
+
+    const notifMap: Partial<Record<ApplicationStatus, { title: string; body: string }>> = {
+      interview: {
+        title: "You've been invited to interview",
+        body: "A company has moved you to the interview stage. Check your inbox.",
+      },
+      offer: {
+        title: "You've received an offer",
+        body: "A company has extended you an offer. Log in to review it.",
+      },
+      rejected: {
+        title: "Application update",
+        body: "An application you submitted has been archived.",
+      },
+    };
+    const notif = notifMap[status];
+    if (notif) {
+      createNotification({
+        user_id: talentId,
+        kind: "application",
+        title: notif.title,
+        body: notif.body,
+        link: "/app/matches",
+      }).catch(() => {});
+    }
+
     refetch();
   }
 
@@ -54,7 +83,7 @@ function Candidates() {
           {tabs.map((t) => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => { setTab(t); setPage(1); }}
               className={
                 "rounded-md px-3 py-1.5 text-xs capitalize transition-colors " +
                 (tab === t
@@ -80,7 +109,7 @@ function Candidates() {
         </div>
       ) : (
         <div className="mt-6 space-y-3">
-          {applications.map((a) => {
+          {applications.slice(0, page * PAGE_SIZE).map((a) => {
             const talent = (
               a as {
                 talent?: {
@@ -175,12 +204,23 @@ function Candidates() {
                     status={a.status}
                     currentUserId={user?.id ?? ""}
                     currentUserName={user?.user_metadata?.display_name ?? "You"}
-                    onMove={(s) => moveStatus(a.id, s)}
+                    onMove={(s) => moveStatus(a.id, s, a.talent_id)}
                   />
                 )}
               </article>
             );
           })}
+        </div>
+      )}
+
+      {applications.length > page * PAGE_SIZE && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+          >
+            Load more ({applications.length - page * PAGE_SIZE} remaining)
+          </button>
         </div>
       )}
     </div>

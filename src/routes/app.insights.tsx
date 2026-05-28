@@ -40,7 +40,7 @@ function InsightsPage() {
       <section>
         <h2 className="font-display text-2xl">Profile signal</h2>
         <p className="mt-1 text-sm text-muted-foreground">How the market sees you · last 30 days</p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             label="Profile views"
             value={viewCount !== null ? String(viewCount) : "…"}
@@ -53,7 +53,6 @@ function InsightsPage() {
             sub="Companies saved you · 30d"
             trend="flat"
           />
-          <StatCard label="Search appearances" value="--" sub="Coming soon" trend="flat" />
           <StatCard
             label="Profile strength"
             value={profile ? `${profile.completeness_pct}%` : "…"}
